@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --primary: #10b981;
+    --accent: #3b82f6;
+    --panel-bg: rgba(30, 41, 59, 0.85);
+    --bg-top: #1e1b4b;
+    --bg-bottom: #020617;
+    --text: #f8fafc;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-bottom);
+    background-image: radial-gradient(circle at 50% 0%, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.glass {
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.team-btn { transition: all 0.2s; }
+
+.team-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    border-color: var(--primary);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.tm-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.tm-logo-lg {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* Animações */
+@keyframes pulse-goal {
+    0% { transform: scale(1); color: #fff; text-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+    50% { transform: scale(1.4); color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 1); }
+    100% { transform: scale(1); color: #fff; text-shadow: 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.goal-scored { animation: pulse-goal 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+.event-log-enter { animation: slideInRight 0.3s ease-out forwards; }
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+.animate-fade-in { animation: fadeIn 0.35s ease-out; }
+
+/* Sorteio Animações */
+@keyframes drawPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.draw-anim { animation: drawPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+/* Chaveamento */
+.bracket-match {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.bracket-match.is-user { border-color: rgba(16, 185, 129, 0.6); box-shadow: 0 0 12px rgba(16, 185, 129, 0.25); }
+
+.bracket-team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bracket-team:last-child { border-bottom: none; }
+
+.winner { font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.1); }
+.loser { color: #64748b; }
+
+/* Tabelas */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.match-result-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 9999px; }
+
+/* Gol do minigame */
+.goal-net {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.form-dot {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.pen-dot {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    border: 2px solid rgba(148, 163, 184, 0.5);
+}
+
+.confetti {
+    position: fixed;
+    top: -16px;
+    width: 10px;
+    height: 14px;
+    pointer-events: none;
+    z-index: 1;
+    animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0.8; }
+}
+
+@keyframes trophyGlow {
+    0%, 100% { filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.5)); transform: translateY(0); }
+    50% { filter: drop-shadow(0 0 28px rgba(250, 204, 21, 0.95)); transform: translateY(-6px); }
+}
+
+.trophy { animation: trophyGlow 2.4s ease-in-out infinite; }
+
+:root { color-scheme: dark; }
+
+/* Margem lateral que respeita a área segura do celular */
+#app { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+@media (min-width: 768px) {
+    #app { padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+}
+
+.modal-close { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 1rem); right: calc(env(safe-area-inset-right, 0px) + 1rem); z-index: 5; }
+@media (min-width: 768px) {
+    .modal-close { top: calc(env(safe-area-inset-top, 0px) + 2rem); right: calc(env(safe-area-inset-right, 0px) + 2rem); }
+}
+.toast-pos { top: calc(env(safe-area-inset-top, 0px) + 1rem); }
+
+#minigame-box { max-height: 58vh; }
+
+/* Celular deitado / telas baixas: cabeçalho da partida compacto para os botões caberem */
+@media (max-height: 560px) {
+    #match-card { height: 96vh; }
+    #match-header { padding: 10px 16px; }
+    #match-header .tm-logo-lg { width: 36px; height: 36px; margin-bottom: 2px; }
+    #match-header-context { margin-bottom: 6px; }
+    #sim-home-score, #sim-away-score { font-size: 2rem; line-height: 1.1; }
+    #sim-home-name, #sim-away-name { font-size: 0.95rem; }
+    #mg-title { font-size: 1.25rem; }
+    #mg-subtitle { margin-top: 2px; margin-bottom: 6px; font-size: 0.8rem; }
+    #minigame-box { max-height: 50vh; }
+    #match-card { overflow-y: auto; }
+    #match-events { min-height: 3rem; }
+    #pen-board { margin-top: 4px; }
+    #pen-board .pen-dot { width: 12px; height: 12px; font-size: 8px; }
+    #mg-sim-pens { position: fixed; right: calc(env(safe-area-inset-right, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confetti { display: none; }
+    .trophy, .goal-scored, .animate-pulse, .animate-fade-in, .event-log-enter { animation: none !important; }
+    .draw-anim { animation: none !important; opacity: 1 !important; }
+}
+    
