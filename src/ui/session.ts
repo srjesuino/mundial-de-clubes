@@ -6,24 +6,52 @@ import { $, askConfirm, hideEl, showEl, toast } from './dom';
 import { enterDashboard } from './dashboard';
 import { clearDrawTimers } from './draw';
 import { resetFlow } from './flow';
+import { emit } from './hooks';
+import { recordTournamentEnd } from './hall';
 import { discardLive } from './live';
-import { refreshConfigUI, resetSelection } from './setup';
+import { refreshConfigUI, resetSelection, startTournament } from './setup';
+import { stopBed } from './sound';
 
-export function resetToConfig(): void {
+/** Fecha partida, sorteio, janelas e o torneio atual (as preferências e a galeria ficam) */
+function teardown(): void {
+  emit('newTournament');
   discardLive();
+  stopBed();
   clearDrawTimers();
   resetFlow();
   store.t = null;
   clearSave();
-  resetSelection();
   ['screen-dashboard', 'screen-match', 'screen-draw', 'screen-select', 'div-confirm-teams', 'modal-champion', 'modal-stats', 'modal-bracket',
-    'modal-round-results', 'modal-groups', 'modal-side', 'modal-continent-dist', 'modal-report', 'saved-game-banner'].forEach(id => { if (document.getElementById(id)) hideEl(id); });
+    'modal-round-results', 'modal-groups', 'modal-side', 'modal-continent-dist', 'modal-report', 'modal-odds', 'modal-hall', 'modal-share',
+    'modal-settings', 'round-ticker', 'minigame-overlay', 'saved-game-banner'].forEach(id => { if (document.getElementById(id)) hideEl(id); });
   $('screen-select').classList.remove('flex-1');
   $('confetti-layer').innerHTML = '';
+}
+
+export function resetToConfig(): void {
+  teardown();
+  resetSelection();
   showEl('screen-sandbox-config');
   $('screen-sandbox-config').classList.add('flex-1');
   refreshConfigUI();
   window.scrollTo(0, 0);
+}
+
+/** Revanche: mesmas regras, mesmos clubes do usuário e a mesma distribuição por continente; o resto é refeito */
+export function rematch(): void {
+  const t = store.t;
+  if (!t) return;
+  recordTournamentEnd();
+  const config = { ...t.config };
+  const ids = [...t.userIds];
+  const slots = t.slots ?? null;
+  teardown();
+  store.cfg = config;
+  store.selectedIds = ids;
+  $('screen-sandbox-config').classList.remove('flex-1');
+  hideEl('screen-sandbox-config');
+  startTournament(slots);
+  if (!store.t) resetToConfig();
 }
 
 export function confirmNewTournament(): void {
@@ -67,6 +95,7 @@ export function initSession(): void {
       store.selectedIds = [...saved.userIds];
       const lm = resolveInterruptedLive(saved);
       saveGame();
+      recordTournamentEnd();
       enterDashboard();
       toastInterrupted(lm);
     } catch {

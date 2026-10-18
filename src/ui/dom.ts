@@ -55,3 +55,37 @@ export function askConfirm(title: string, text: string, onYes: () => void, yesLa
   $('confirm-no').onclick = () => { hideEl('modal-confirm'); onNo?.(); };
   $('confirm-yes').onclick = () => { hideEl('modal-confirm'); onYes(); };
 }
+
+// ---------- Narração para leitor de tela ----------
+// No máximo uma fala a cada 1,2 s; se chegar outra no meio, fica só a mais nova (urgente fala na hora).
+let srBusyUntil = 0;
+let srQueued: string | null = null;
+let srTimer: number | undefined;
+let srEnabled = (): boolean => true;
+export const setSrEnabled = (fn: () => boolean): void => { srEnabled = fn; };
+
+function srFlush(text: string): void {
+  const el = document.getElementById('sr-live');
+  if (!el) return;
+  el.textContent = '';
+  // trocar o texto depois de limpar faz o leitor repetir frases iguais
+  window.setTimeout(() => { el.textContent = text; }, 30);
+  srBusyUntil = performance.now() + 1200;
+}
+
+export function srSay(text: string, urgent = false): void {
+  if (!srEnabled()) return;
+  const now = performance.now();
+  if (urgent || now >= srBusyUntil) {
+    srQueued = null;
+    clearTimeout(srTimer);
+    srFlush(text);
+    return;
+  }
+  srQueued = text;
+  clearTimeout(srTimer);
+  srTimer = window.setTimeout(() => { if (srQueued) { const q = srQueued; srQueued = null; srFlush(q); } }, srBusyUntil - now);
+}
+
+/** Número no formato brasileiro (1.240 · 12,4) */
+export const fmtBR = (x: number, digits = 0): string => x.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });

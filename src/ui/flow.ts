@@ -1,14 +1,17 @@
-// Fluxo de uma rodada: simular, jogar ao vivo, ver resultados e avançar
+// Fluxo de uma rodada: simular, jogar ao vivo, plantão da rodada, resultados e avanço
 import { isUser, isUserMatch, winnerId } from '../engine/core';
 import { maxGroupRounds } from '../engine/groups';
 import { advance, currentRoundMatches, roundTitle, simulateRound } from '../engine/tournament';
 import type { DENode, PlayableMatch } from '../engine/types';
+import { prefs } from '../state/prefs';
 import { T, saveGame } from '../state/store';
+import { checkMatches } from './ach';
 import { shielded } from './dom';
 import { updateDashboard } from './dashboard';
+import { afterAdvance } from './hooks';
 import { chooseSide, closeMatchScreen, startLive } from './live';
 import { showRoundResults } from './results';
-import { afterAdvance } from './hooks';
+import { playRoundTicker } from './ticker';
 
 let playQueue: PlayableMatch[] = [];
 let liveRoundMatches: PlayableMatch[] = [];
@@ -27,12 +30,18 @@ function advanceButtonLabel(): string {
   return ms.length === 1 ? '🏆 Ver Campeão' : 'Ir para o Sorteio →';
 }
 
-function finishRound(ms: PlayableMatch[]): void {
+/** Simula o que falta da rodada e mostra o plantão (se ligado) e depois os resultados */
+function finishRound(ms: PlayableMatch[], cameFromLive = false): void {
   const t = T();
+  const fresh = ms.filter(m => !m.played);
   simulateRound(t);
+  checkMatches(t, ms);
   saveGame();
   updateDashboard();
-  showRoundResults(ms, `Resultados · ${roundTitle(t)}`, { label: advanceButtonLabel(), run: advanceLogic });
+  const title = `Resultados · ${roundTitle(t)}`;
+  const show = () => showRoundResults(ms, title, { label: advanceButtonLabel(), run: advanceLogic });
+  if (prefs.ticker && (fresh.length || cameFromLive)) playRoundTicker(ms, roundTitle(t), show);
+  else show();
 }
 
 export function onSimulate(): void {
@@ -54,7 +63,7 @@ export function onPlay(): void {
 function playNextUserMatch(): void {
   const t = T();
   const m = playQueue.shift();
-  if (!m) { closeMatchScreen(); finishRound(liveRoundMatches); return; }
+  if (!m) { closeMatchScreen(); finishRound(liveRoundMatches, true); return; }
   if (m.played) { playNextUserMatch(); return; }
   if (isUser(t, m.home) && isUser(t, m.away)) chooseSide(m, side => startLive(m, side));
   else startLive(m, isUser(t, m.home) ? 'home' : 'away');
@@ -65,7 +74,7 @@ export const liveFlow = {
   hasMoreUserMatches: (): boolean => playQueue.some(x => !x.played),
   next: (): void => {
     if (playQueue.some(x => !x.played)) playNextUserMatch();
-    else { closeMatchScreen(); finishRound(liveRoundMatches); }
+    else { closeMatchScreen(); finishRound(liveRoundMatches, true); }
   }
 };
 

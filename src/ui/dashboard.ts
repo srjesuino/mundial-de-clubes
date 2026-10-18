@@ -1,6 +1,7 @@
 // Painel principal do torneio
 import { PHASE_LABEL, isUser, isUserMatch, oddsFor, team } from '../engine/core';
 import { qualifiedCount } from '../engine/config';
+import { clinchStatus } from '../engine/forecast';
 import { sortGroupIds } from '../engine/groups';
 import { currentRoundMatches, lastDecisiveMatch, roundTitle } from '../engine/tournament';
 import type { DENode, PlayableMatch, TeamState } from '../engine/types';
@@ -154,8 +155,11 @@ export function renderGroupTable(g: string, tbody: HTMLElement, compact = false)
     const qual = i < k;
     const rowBg = isU ? 'bg-emerald-900/40 font-bold' : '';
     const stickyBg = isU ? 'bg-emerald-950' : 'bg-slate-800';
+    const cl = clinchStatus(t, id);
+    const mark = cl === 'in' ? `<span class="text-emerald-400 text-[10px] font-black" title="${qualifiedCount(t.config) === 1 ? 'Campeão' : 'Classificado'} matematicamente" aria-label="garantido">✓</span>`
+      : cl === 'out' ? '<span class="text-red-400 text-[10px] font-black" title="Eliminado matematicamente" aria-label="eliminado">✗</span>' : '';
     const clubCell = `<td class="py-2 sticky-col pl-2 pr-2 ${stickyBg} ${qual ? 'border-l-2 border-l-emerald-500' : 'border-l-2 border-l-transparent'}">
-        <div class="flex items-center gap-2 whitespace-nowrap"><span class="text-slate-500 w-4 text-right text-xs tabular-nums">${i + 1}</span>${logoImg(x, 'w-5 h-5 object-contain')}<span class="${isU ? 'text-emerald-400' : 'text-slate-200'} ${compact ? 'max-w-[120px] truncate' : ''}">${escapeHtml(x.name)}</span></div></td>`;
+        <div class="flex items-center gap-2 whitespace-nowrap"><span class="text-slate-500 w-4 text-right text-xs tabular-nums">${i + 1}</span>${logoImg(x, 'w-5 h-5 object-contain')}<span class="${isU ? 'text-emerald-400' : 'text-slate-200'} ${compact ? 'max-w-[120px] truncate' : ''}">${escapeHtml(x.name)}</span>${mark}</div></td>`;
     if (compact) {
       return `<tr class="border-b border-slate-700/30 ${rowBg} tabular-nums">${clubCell}
         <td class="py-2 text-center text-white font-bold">${x.p}</td>
@@ -183,8 +187,8 @@ function showGroupView(g: string | null): void {
   renderGroupTable(g, $('group-table-body'));
   const k = t.config.advancingPerGroup;
   $('group-legend').textContent = qualifiedCount(t.config) === 1
-    ? 'Pontos corridos: o líder ao fim das rodadas é o campeão. Critérios: pontos, saldo, gols pró, confronto direto, vitórias, sorteio.'
-    : `Faixa verde = zona de classificação (Top ${k}). Critérios: pontos, saldo, gols pró, confronto direto, vitórias, sorteio.`;
+    ? 'Pontos corridos: o líder ao fim das rodadas é o campeão. Critérios: pontos, saldo, gols pró, confronto direto, vitórias, sorteio. ✓ = campeão matematicamente.'
+    : `Faixa verde = zona de classificação (Top ${k}). Critérios: pontos, saldo, gols pró, confronto direto, vitórias, sorteio. ✓/✗ = classificado/eliminado matematicamente.`;
   const rounds = t.schedule[g];
   const ri = t.phase === 'GROUP' ? Math.min(t.round, rounds.length - 1) : rounds.length - 1;
   $('group-round-title').textContent = `Jogos do Grupo ${g} · Rodada ${ri + 1}/${rounds.length}`;

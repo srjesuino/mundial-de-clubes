@@ -6,6 +6,8 @@ export type MatchKind = 'group' | 'swiss' | 'ko';
 export type Side = 'home' | 'away';
 /** Postura tática de um clube controlado pelo usuário */
 export type Tactic = 'def' | 'bal' | 'att';
+/** Dificuldade dos minigames (não muda o simulador) */
+export type Difficulty = 'facil' | 'normal' | 'dificil' | 'lenda';
 
 export interface ClubBase {
   id: string;
@@ -29,6 +31,8 @@ export interface Config {
   totalTeamsSwiss: number;
   totalTeamsKnockout: number;
   fillMethod: 'random' | 'custom';
+  /** só muda os minigames das partidas ao vivo */
+  difficulty?: Difficulty;
 }
 
 export interface Stats { j: number; v: number; e: number; d: number; gp: number; gc: number }
@@ -53,16 +57,36 @@ export interface TeamState extends ClubBase {
   out: string | null;
 }
 
+/** Resumo de uma partida jogada ao vivo pelo usuário (até o fim, nos minigames) */
+export interface LiveRecord {
+  /** dificuldade usada */
+  d: Difficulty;
+  /** maior desvantagem do usuário no placar durante o jogo */
+  md: number;
+  /** 1 se usou "Pular para o Fim" */
+  sk: 0 | 1;
+  /** pênaltis batidos pelo usuário nos minigames: [cobranças, gols] */
+  ps: [number, number];
+  /** pênaltis do adversário com o usuário no gol: [cobranças, defesas/erros] */
+  pd: [number, number];
+  /** chances de ataque nos minigames: [tentativas, gols] */
+  at?: [number, number];
+  /** chances do adversário nos minigames: [tentativas, gols sofridos] */
+  df?: [number, number];
+}
+
 export interface MatchResult {
   gH: number;
   gA: number;
   et: boolean;
   penH: number | null;
   penA: number | null;
-  /** quem jogou ao vivo (para o relatório e as estatísticas de habilidade) */
-  live?: boolean;
-  /** linha do tempo das chances: [minuto, lado, gol?] */
-  events?: [number, 0 | 1, 0 | 1][];
+  /** minutos dos gols: [minuto, 0=mandante/1=visitante] */
+  gm?: [number, 0 | 1][];
+  /** cobranças da disputa de pênaltis: quem começou e acertos (1) / erros (0) */
+  pk?: { f: Side; h: number[]; a: number[] };
+  /** presente só quando o usuário jogou a partida inteira ao vivo */
+  live?: LiveRecord;
 }
 
 export interface Match {
@@ -73,8 +97,10 @@ export interface Match {
   stage: string;
   played: boolean;
   res: MatchResult | null;
-  /** táticas escolhidas pelos clubes do usuário neste jogo */
+  /** posturas escolhidas pelos clubes do usuário neste jogo (NPCs sempre Equilibrado) */
   tactics?: Partial<Record<Side, Tactic>>;
+  /** conquistas já verificadas para este jogo */
+  achk?: 1;
 }
 
 export interface DENode {
@@ -94,6 +120,7 @@ export interface DENode {
   isGF1?: boolean;
   isGF2?: boolean;
   tactics?: Partial<Record<Side, Tactic>>;
+  achk?: 1;
 }
 
 /** Um jogo com os dois lados definidos (nó de chave pronto para ser jogado inclusive) */
@@ -131,7 +158,41 @@ export interface LiveSnapshot {
   pen: Shootout | null;
   chance: { home: boolean; userAttacks: boolean } | null;
   kick: { home: boolean; userAttacks: boolean } | null;
-  events?: [number, 0 | 1, 0 | 1][];
+}
+
+/** Aproveitamento do usuário nos minigames, contado lance a lance */
+export interface Skill {
+  att: { n: number; g: number };              // chances de ataque: tentativas, gols
+  def: { n: number; g: number };              // chances do adversário: tentativas, gols sofridos
+  penS: { n: number; g: number; e: number };  // pênaltis batidos: cobranças, gols, gols esperados pelo motor
+  penD: { n: number; g: number; e: number };  // pênaltis defendidos: cobranças, gols sofridos, gols esperados
+}
+
+/** Previsão do torneio por Monte Carlo (guardada para mostrar sem recalcular) */
+export interface Forecast {
+  key: string;
+  n: number;
+  label: string;
+  cols: string[];
+  /** probabilidade por clube, na ordem de cols (na coluna 'Posição média', a posição média) */
+  p: Record<string, number[]>;
+  /** cenários do próximo jogo dos clubes do usuário: resultado → [simulações, classificou (ou título)] */
+  cond: Record<string, Partial<Record<'V' | 'E' | 'D', [number, number]>>>;
+  /** posições finais no grupo: grupo → clube → probabilidade de cada posição */
+  pos: Record<string, Record<string, number[]>>;
+  /** clubes já sem chance de nada (decidido, não estimado) */
+  dead: string[];
+  /** quantas das primeiras colunas o clube já garantiu (decidido, não estimado) */
+  got: Record<string, number>;
+}
+
+export interface ForecastLogEntry {
+  /** progresso do torneio (sem a postura): uma entrada por rodada */
+  k: string;
+  label: string;
+  n: number;
+  /** chance de título dos clubes do usuário */
+  t: Record<string, number>;
 }
 
 export interface Tournament {
@@ -153,8 +214,14 @@ export interface Tournament {
   runnerUp: string | null;
   championNote: string | null;
   live: LiveSnapshot | null;
-  /** postura padrão de cada clube do usuário (pode ser trocada antes de cada jogo) */
-  tactics: Record<string, Tactic>;
-  /** histórico da chance de título dos clubes do usuário, uma entrada por rodada */
-  oddsHistory: { label: string; title: Record<string, number> }[];
+  /** dificuldades usadas nas partidas ao vivo deste torneio */
+  diffUsed?: Difficulty[];
+  skill?: Skill;
+  /** última previsão calculada e histórico da chance de título dos clubes do usuário */
+  mc?: Forecast;
+  mcLog?: ForecastLogEntry[];
+  /** distribuição por continente usada (para a Revanche) */
+  slots?: Partial<Record<Confederation, number>> | null;
+  /** id da entrada na Galeria de Campeões (gravada uma única vez) */
+  hofId?: string;
 }

@@ -1,7 +1,7 @@
 import { getContinentByCountry } from '../data/teams';
 import { HOME_ADV, computeXG, simulateMatch, matchOdds, type Odds, type SimContext } from './model';
 import { rand } from './rng';
-import type { ClubBase, DENode, Match, MatchKind, MatchResult, PlayableMatch, TeamState, Tournament } from './types';
+import type { ClubBase, DENode, Match, MatchKind, MatchResult, PlayableMatch, Tactic, TeamState, Tournament } from './types';
 
 export const PHASE_LABEL = {
   R64: '32-avos de Final', R32: '16-avos de Final', R16: 'Oitavas de Final', QF: 'Quartas de Final', SF: 'Semifinal', F: 'Final'
@@ -38,22 +38,33 @@ export function makeTeamState(base: ClubBase): TeamState {
 export const homeAdvantage = (t: Tournament, m: { kind: MatchKind }): number =>
   m.kind === 'group' && t.config.groupLegs === 2 ? HOME_ADV : 0;
 
-/** Táticas efetivas do jogo: a escolhida no jogo ou a padrão do clube do usuário; NPCs jogam equilibrado */
-export function effectiveTactics(t: Tournament, m: PlayableMatch): PlayableMatch['tactics'] {
-  const pick = (side: 'home' | 'away') => m.tactics?.[side] ?? (isUser(t, m[side]) ? t.tactics?.[m[side]] : undefined) ?? 'bal';
+/** Posturas do jogo: só clubes do usuário escolhem; os do computador jogam sempre Equilibrado */
+export function effectiveTactics(t: Tournament, m: PlayableMatch): NonNullable<PlayableMatch['tactics']> {
+  const pick = (side: 'home' | 'away') => (isUser(t, m[side]) ? m.tactics?.[side] : undefined) ?? 'bal';
   return { home: pick('home'), away: pick('away') };
 }
 
-export function simContext(t: Tournament, m: PlayableMatch): SimContext {
+export function simContext(t: Tournament, m: PlayableMatch, tactics: PlayableMatch['tactics'] = effectiveTactics(t, m)): SimContext {
   const H = team(t, m.home), A = team(t, m.away);
-  const { xh, xa } = computeXG({ homeOvr: H.ovr, awayOvr: A.ovr, homeAdv: homeAdvantage(t, m), tactics: effectiveTactics(t, m) });
+  const { xh, xa } = computeXG({ homeOvr: H.ovr, awayOvr: A.ovr, homeAdv: homeAdvantage(t, m), tactics });
   return { kind: m.kind, xh, xa, homeOvr: H.ovr, awayOvr: A.ovr };
 }
 
-export const oddsFor = (t: Tournament, m: PlayableMatch): Odds => matchOdds(simContext(t, m));
+/** Probabilidades com as posturas escolhidas (o que o jogador vê antes do jogo) */
+export const oddsFor = (t: Tournament, m: PlayableMatch, tactics?: PlayableMatch['tactics']): Odds => matchOdds(simContext(t, m, tactics));
 
-export function simulateResult(t: Tournament, m: PlayableMatch): MatchResult {
-  return simulateMatch(simContext(t, m));
+/** Probabilidades com posturas neutras: base da Superação e das conquistas (não dá para "farmar" com a postura) */
+export const baseOdds = (t: Tournament, m: PlayableMatch): Odds => matchOdds(simContext(t, m, { home: 'bal', away: 'bal' }));
+
+/** Muda a postura de um clube do usuário num jogo ainda não disputado */
+export function setTactic(t: Tournament, m: PlayableMatch, side: 'home' | 'away', v: Tactic): boolean {
+  if (m.played || !isUser(t, m[side])) return false;
+  m.tactics = { ...m.tactics, [side]: v };
+  return true;
+}
+
+export function simulateResult(t: Tournament, m: PlayableMatch, timeline = true): MatchResult {
+  return simulateMatch(simContext(t, m), timeline);
 }
 
 export function winnerId(m: { home: string | null; away: string | null; res: MatchResult | null }): string {
@@ -71,7 +82,8 @@ export function applyResult(t: Tournament, m: PlayableMatch, res: MatchResult): 
   if (m.played) return;
   m.played = true;
   m.res = res;
-  m.tactics = effectiveTactics(t, m);
+  const tac = effectiveTactics(t, m);
+  if (tac.home !== 'bal' || tac.away !== 'bal') m.tactics = tac;
   const H = team(t, m.home), A = team(t, m.away);
 
   // Campanha geral (decisão por pênaltis conta como empate, como nas estatísticas oficiais)

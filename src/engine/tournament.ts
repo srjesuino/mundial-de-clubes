@@ -41,9 +41,7 @@ export function createTournament(
     v: 3, config: { ...config }, userIds: [...userIds], activeId: userIds[0],
     teams: {}, phase: 'GROUP', round: 0, seq: 0,
     groups: {}, schedule: {}, swissRounds: [], knockout: [], bracket: null, draw: null,
-    champion: null, runnerUp: null, championNote: null, live: null,
-    tactics: Object.fromEntries(userIds.map(id => [id, 'bal' as const])),
-    oddsHistory: []
+    champion: null, runnerUp: null, championNote: null, live: null, slots: slots ?? null
   };
   bases.forEach(b => { t.teams[b.id] = makeTeamState(b); });
   const ids = bases.map(b => b.id);
@@ -123,27 +121,34 @@ export function advance(t: Tournament): boolean {
   return true;
 }
 
-/** Simula todos os jogos ainda não disputados da rodada atual */
-export function simulateRound(t: Tournament): PlayableMatch[] {
+/** Simula todos os jogos ainda não disputados da rodada atual (timeline = minutos dos gols para a tela) */
+export function simulateRound(t: Tournament, timeline = true): PlayableMatch[] {
   const ms = currentRoundMatches(t);
-  ms.forEach(m => { if (!m.played) applyResult(t, m, simulateResult(t, m)); });
+  ms.forEach(m => { if (!m.played) applyResult(t, m, simulateResult(t, m, timeline)); });
   return ms;
 }
 
 export { finalizeDraw };
 
-/** Joga o resto do torneio NUMA CÓPIA do estado com o mesmo motor e devolve o estado final */
-export function simulateRemainder(state: Tournament): Tournament {
-  const t = structuredClone(state);
-  t.live = null;
+/** Joga um torneio (já copiado) até o fim com o mesmo motor do botão Simular */
+export function runToEnd(t: Tournament, timeline = false): Tournament {
   let guard = 0;
   while (t.phase !== 'END' && guard++ < 5000) {
     if (t.draw) { finalizeDraw(t); continue; }
     if (!currentRoundMatches(t).length) break;
-    simulateRound(t);
+    simulateRound(t, timeline);
     advance(t);
   }
   return t;
+}
+
+/** Joga o resto do torneio NUMA CÓPIA do estado e devolve o estado final (o original não muda) */
+export function simulateRemainder(state: Tournament): Tournament {
+  const t = structuredClone(state);
+  t.live = null;
+  t.mc = undefined;
+  t.mcLog = undefined;
+  return runToEnd(t, false);
 }
 
 /** Todos os jogos do torneio (disputados ou não) */

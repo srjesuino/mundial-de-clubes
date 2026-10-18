@@ -1,17 +1,23 @@
 // Tela de campeão e estatísticas do torneio
 import { isUser, team } from '../engine/core';
+import { upsets } from '../engine/meta';
 import { championPath, tournamentStats } from '../engine/stats';
 import { rand } from '../engine/rng';
 import type { TeamState } from '../engine/types';
+import { motionOK } from '../state/prefs';
 import { T } from '../state/store';
+import { takeAchStrip } from './ach';
 import { openBracket } from './bracket';
 import { logoImg, setLogo } from './crest';
-import { $, escapeHtml, hideEl, pct, setHidden, showEl } from './dom';
+import { $, escapeHtml, fmtBR, hideEl, pct, setHidden, showEl } from './dom';
+import { championExtras } from './hall';
 import { campaignTiles, miniMatchRow } from './render';
 import { openAllGroups } from './results';
+import * as sfx from './sound';
+import { skillHtml } from './tactics';
 
 function launchConfetti(): void {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!motionOK()) return;
   const layer = $('confetti-layer');
   layer.innerHTML = '';
   const colors = ['#facc15', '#10b981', '#38bdf8', '#f472b6', '#f97316', '#ffffff'];
@@ -52,8 +58,16 @@ export function showChampion(celebrate: boolean): void {
   }).join('');
 
   $('champ-btn-bracket').textContent = t.knockout.length || t.bracket ? 'Ver Chaveamento' : 'Ver Classificação';
+  championExtras();
+  const strip = takeAchStrip();
+  $('champ-ach').innerHTML = strip;
+  setHidden('champ-ach', !strip);
   showEl('modal-champion');
-  if (celebrate) launchConfetti();
+  $('modal-champion').scrollTop = 0;
+  if (celebrate) {
+    launchConfetti();
+    if (userChamp) sfx.fanfare(); else sfx.elim();
+  }
 }
 
 export function openStats(): void {
@@ -62,11 +76,14 @@ export function openStats(): void {
   const box = $('stats-content');
   if (!s.matches.length) { box.innerHTML = '<p class="text-center text-slate-400">Nenhuma partida disputada ainda.</p>'; showEl('modal-stats'); return; }
   const n = s.matches.length;
+  const sk = skillHtml();
+  const zebras = upsets(t).slice(0, 5);
   const list = (title: string, arr: TeamState[], val: (x: TeamState) => string | number) =>
     `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-4"><h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">${title}</h4>${arr.map((x, i) =>
       `<div class="flex items-center gap-2 py-1 ${isUser(t, x.id) ? 'text-emerald-400 font-bold' : ''}"><span class="w-4 text-slate-500 text-xs tabular-nums">${i + 1}</span>${logoImg(x, 'w-5 h-5 object-contain')}<span class="truncate">${escapeHtml(x.name)}</span><span class="ml-auto font-black tabular-nums">${val(x)}</span></div>`).join('')}</div>`;
   const tile = (label: string, value: string | number) => `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-4 text-center"><div class="text-2xl md:text-3xl font-black text-white tabular-nums">${value}</div><div class="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">${label}</div></div>`;
   box.innerHTML = `
+    ${sk ? `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3 mb-4 text-xs text-slate-300 flex flex-col gap-1"><h4 class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Você x o motor</h4>${sk}</div>` : ''}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
       ${tile('Jogos', n)}${tile('Gols', s.goals)}${tile('Média de gols', (s.goals / n).toFixed(2))}${tile('Decisões por pênaltis', s.pens)}
     </div>
@@ -80,7 +97,7 @@ export function openStats(): void {
       ${list('Mais vitórias', s.wins, x => x.st.v)}
     </div>
     <p class="text-xs text-slate-500 text-center mb-2">Vitórias do mandante/1º listado: ${pct(s.homeWins / n)} · empates no tempo normal/prorrogação: ${pct(s.draws / n)} · prorrogações: ${s.extraTimes}</p>
-    ${s.upsets.length ? `<div class="mt-4"><h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Zebras (vencedor com OVR 6+ abaixo)</h4><div class="flex flex-col gap-2">${s.upsets.slice(0, 5).map(m => miniMatchRow(m)).join('')}</div></div>` : ''}`;
+    ${zebras.length ? `<div class="mt-4"><h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Zebras (o vencedor tinha menos de 35% de chance pelo motor)</h4><div class="flex flex-col gap-2">${zebras.map(z => `<div><p class="text-[10px] text-amber-300 font-bold mb-1">${escapeHtml(z.m.stage)} · tinha ${fmtBR(Math.round(z.p * 1000) / 10, 1)}%</p>${miniMatchRow(z.m)}</div>`).join('')}</div></div>` : ''}`;
   showEl('modal-stats');
 }
 

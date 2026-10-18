@@ -209,9 +209,57 @@ body {
     #mg-sim-pens { position: fixed; right: calc(env(safe-area-inset-right, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .confetti { display: none; }
-    .trophy, .goal-scored, .animate-pulse, .animate-fade-in, .event-log-enter { animation: none !important; }
-    .draw-anim { animation: none !important; opacity: 1 !important; }
+/* Botões de ícone (som, preferências) e de postura: área de toque de 44px */
+.icon-btn {
+    width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 9999px; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(100, 116, 139, 0.6);
+    font-size: 1.15rem; line-height: 1; transition: background 0.15s;
 }
+.icon-btn:hover { background: rgba(51, 65, 85, 0.95); }
+.icon-btn[aria-pressed="false"] { opacity: 0.6; }
+.tac-btn {
+    min-width: 44px; min-height: 44px; border-radius: 0.5rem; font-size: 1.1rem; display: inline-flex;
+    align-items: center; justify-content: center; color: #cbd5e1; transition: background 0.15s;
+}
+.tac-btn:hover { background: rgba(51, 65, 85, 0.9); }
+.tac-btn[aria-pressed="true"] { background: #059669; color: #fff; }
+kbd {
+    display: inline-block; min-width: 1.4em; padding: 0 0.3em; border-radius: 4px; text-align: center;
+    background: #1e293b; border: 1px solid #475569; border-bottom-width: 2px; font: 700 10px/1.6 ui-monospace, monospace; color: #e2e8f0;
+}
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Gráfico de chance ao vivo */
+.wp-goal { position: absolute; transform: translate(-50%, 0); font-size: 10px; line-height: 1; }
+.wp-tick { position: absolute; width: 2px; height: 6px; transform: translateX(-1px); border-radius: 1px; }
+.wp-frozen { pointer-events: none; }
+.wp-frozen svg { display: block; width: 100%; height: 56px; }
+
+/* Plantão: placar que muda */
+.tk-flash { animation: tkFlash 1.2s ease-out; }
+@keyframes tkFlash { from { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.9); } to { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0); } }
+.tk-chip { animation: fadeIn 0.25s ease-out; }
+
+/* Matriz de posições (Probabilidades) */
+.pos-cell { width: 28px; height: 28px; min-width: 28px; border-radius: 4px; font-size: 9px; font-weight: 800; color: #ecfdf5; }
+.pos-cell:focus-visible { outline: 2px solid #fde047; }
+
+@media (max-height: 560px) {
+    #wp-svg { height: 28px; }
+    #wp-caption { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion='full']) .confetti { display: none; }
+    :root:not([data-motion='full']) .trophy, :root:not([data-motion='full']) .goal-scored, :root:not([data-motion='full']) .animate-pulse,
+    :root:not([data-motion='full']) .animate-fade-in, :root:not([data-motion='full']) .event-log-enter,
+    :root:not([data-motion='full']) .tk-flash, :root:not([data-motion='full']) .tk-chip { animation: none !important; }
+    :root:not([data-motion='full']) .draw-anim { animation: none !important; opacity: 1 !important; }
+}
+/* Preferência do próprio jogo (Preferências → Animações) */
+:root[data-motion='reduced'] .confetti { display: none; }
+:root[data-motion='reduced'] .trophy, :root[data-motion='reduced'] .goal-scored, :root[data-motion='reduced'] .animate-pulse,
+:root[data-motion='reduced'] .animate-fade-in, :root[data-motion='reduced'] .event-log-enter,
+:root[data-motion='reduced'] .tk-flash, :root[data-motion='reduced'] .tk-chip { animation: none !important; }
+:root[data-motion='reduced'] .draw-anim { animation: none !important; opacity: 1 !important; }
     

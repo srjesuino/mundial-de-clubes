@@ -1,7 +1,7 @@
 // Partida ao vivo interrompida (página recarregada): o simulador termina o jogo a partir do placar salvo,
 // para que um jogo que estava sendo perdido não possa ser "rejogado".
 import { applyResult, isPlayable, simContext, team } from './core';
-import { LIVE } from './live';
+import { diffOf } from './live';
 import { newShootout, needsWinner, penKickProb, recordKick, shootoutOver, simulateShootout } from './model';
 import { poisson, rand } from './rng';
 import { allMatches } from './tournament';
@@ -17,7 +17,8 @@ export function resolveInterruptedLive(t: Tournament): PlayableMatch | null {
   let gH = Math.max(0, lv.hSc | 0), gA = Math.max(0, lv.aSc | 0), et = !!lv.et, min = lv.min | 0, period = lv.period;
   // lance aberto no momento do recarregamento conta como "não reagiu"
   if (lv.chance && period !== 'PEN') {
-    const goal = rand() < (lv.chance.userAttacks ? LIVE.lateGoal : LIVE.missedGoal);
+    const D = diffOf(t.config.difficulty);
+    const goal = rand() < (lv.chance.userAttacks ? D.lateGoal : D.missedGoal);
     if (goal) { if (lv.chance.home) gH++; else gA++; }
   }
   if (period === 'REG') {
@@ -31,7 +32,8 @@ export function resolveInterruptedLive(t: Tournament): PlayableMatch | null {
     gH += poisson(xh * f);
     gA += poisson(xa * f);
   }
-  const res: MatchResult = { gH, gA, et, penH: null, penA: null, live: true, events: lv.events ?? [] };
+  // sem LiveRecord: partida interrompida não conta para recordes nem conquistas de habilidade
+  const res: MatchResult = { gH, gA, et, penH: null, penA: null };
   if (gH === gA && needsWinner(m.kind)) {
     const P = period === 'PEN' && lv.pen && Number.isInteger(lv.pen.hk) ? lv.pen : newShootout();
     if (period === 'PEN' && lv.kick && !shootoutOver(P)) {

@@ -34,8 +34,17 @@ export function validSave(s: unknown): s is Tournament {
   const d = s.draw;
   if (d !== null && !(isObj(d) && Array.isArray(d.pairs) && Number.isInteger(d.revealed))) return false;
   if (s.phase === 'DE' && !d && !(isObj(s.bracket) && Array.isArray(s.bracket.nodes))) return false;
-  if (!isObj(s.tactics) || !Array.isArray(s.oddsHistory)) return false;
   return true;
+}
+
+/** Campos opcionais (previsão, recordes) malformados são descartados em vez de invalidar o torneio */
+function sanitize(s: Tournament): Tournament {
+  const o = s as unknown as Record<string, unknown>;
+  if (o.mc !== undefined && !(isObj(o.mc) && Array.isArray((o.mc as Record<string, unknown>).cols) && isObj((o.mc as Record<string, unknown>).p))) delete o.mc;
+  if (o.mcLog !== undefined && !Array.isArray(o.mcLog)) delete o.mcLog;
+  if (o.diffUsed !== undefined && !Array.isArray(o.diffUsed)) delete o.diffUsed;
+  if (o.skill !== undefined && !isObj(o.skill)) delete o.skill;
+  return s;
 }
 
 export function saveGame(): void {
@@ -50,7 +59,7 @@ export function loadGame(): Tournament | null {
   if (!raw) return null;
   try {
     const s: unknown = JSON.parse(raw);
-    if (validSave(s)) return s;
+    if (validSave(s)) return sanitize(s);
   } catch { /* JSON inválido */ }
   clearSave();
   return null;

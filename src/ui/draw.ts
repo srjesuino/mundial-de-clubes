@@ -6,6 +6,8 @@ import { openBracket } from './bracket';
 import { setLogo } from './crest';
 import { $, escapeHtml, hideEl, setHidden, shieldClicks, shielded, showEl } from './dom';
 import { updateDashboard } from './dashboard';
+import { emit } from './hooks';
+import * as sfx from './sound';
 
 let drawTimers: number[] = [];
 let drawAnimating = false;
@@ -53,8 +55,10 @@ function showSide(side: 'a' | 'b', id: string): void {
 function revealedOne(): void {
   const t = T();
   t.draw!.revealed++;
-  if (t.draw!.revealed >= t.draw!.pairs.length) finalizeDraw(t);
+  const done = t.draw!.revealed >= t.draw!.pairs.length;
+  if (done) finalizeDraw(t);
   saveGame();
+  if (done) emit('drawFinalized');
 }
 
 export function openDraw(): void {
@@ -81,9 +85,11 @@ export function initDraw(): void {
     updateDrawButtons();
     resetDrawUI();
     const [a, b] = D.pairs[D.revealed];
-    drawTimers.push(window.setTimeout(() => { showSide('a', a); $('draw-team-a').classList.add('draw-anim'); }, 300));
-    drawTimers.push(window.setTimeout(() => { $('draw-vs').style.opacity = '1'; $('draw-vs').classList.add('draw-anim'); }, 1000));
+    sfx.drumroll(300);
+    drawTimers.push(window.setTimeout(() => { showSide('a', a); $('draw-team-a').classList.add('draw-anim'); sfx.drumroll(650); }, 300));
+    drawTimers.push(window.setTimeout(() => { $('draw-vs').style.opacity = '1'; $('draw-vs').classList.add('draw-anim'); sfx.pop(); }, 1000));
     drawTimers.push(window.setTimeout(() => {
+      sfx.pop();
       showSide('b', b);
       $('draw-team-b').classList.add('draw-anim');
       const pairs = D.pairs.slice(0, D.revealed + 1);

@@ -10,14 +10,13 @@ export const HOME_ADV = 0.1;    // mando de campo (só em grupos de ida e volta)
 export const ET_FRACTION = 1 / 3; // prorrogação = 30 de 90 minutos
 
 /**
- * Postura tática: muda o ritmo do jogo, não a qualidade dos times.
- * own = multiplica o xG do próprio time; opp = multiplica o xG do adversário.
+ * Postura tática: muda o RITMO do jogo, igual para os dois lados (uma regra só, sem bônus escondido).
+ * Ofensivo: +30% de gols esperados para os DOIS times; Retranca: −25% para os dois.
+ * O efeito sai da matemática de Poisson: o favorito ganha com jogo aberto, o azarão com jogo fechado.
  */
-export const TACTICS: Record<Tactic, { label: string; own: number; opp: number; hint: string }> = {
-  def: { label: 'Retranca', own: 0.78, opp: 0.72, hint: 'Jogo fechado: menos gols dos dois lados, mais empates' },
-  bal: { label: 'Equilibrado', own: 1, opp: 1, hint: 'Sem alterar o ritmo' },
-  att: { label: 'Ofensivo', own: 1.18, opp: 1.15, hint: 'Jogo aberto: mais gols dos dois lados' }
-};
+export const PACE: Record<Tactic, number> = { def: 0.75, bal: 1, att: 1.3 };
+export const TACTIC_LABEL: Record<Tactic, string> = { def: 'Retranca', bal: 'Equilibrado', att: 'Ofensivo' };
+export const TACTIC_ICON: Record<Tactic, string> = { def: '🛡️', bal: '⚖️', att: '⚔️' };
 
 export interface XgInput {
   homeOvr: number;
@@ -28,13 +27,10 @@ export interface XgInput {
 
 export function computeXG({ homeOvr, awayOvr, homeAdv, tactics }: XgInput): { xh: number; xa: number } {
   const d = homeOvr - awayOvr;
-  let xh = BASE_XG * Math.exp(OVR_K * d) * (1 + homeAdv);
-  let xa = BASE_XG * Math.exp(-OVR_K * d) * (1 - homeAdv);
-  const th = TACTICS[tactics?.home ?? 'bal'];
-  const ta = TACTICS[tactics?.away ?? 'bal'];
-  xh *= th.own * ta.opp;
-  xa *= ta.own * th.opp;
-  return { xh: clamp(xh, 0.12, 5.5), xa: clamp(xa, 0.12, 5.5) };
+  const pace = PACE[tactics?.home ?? 'bal'] * PACE[tactics?.away ?? 'bal'];
+  const xh = BASE_XG * Math.exp(OVR_K * d) * (1 + homeAdv) * pace;
+  const xa = BASE_XG * Math.exp(-OVR_K * d) * (1 - homeAdv) * pace;
+  return { xh: clamp(xh, 0.15, 5), xa: clamp(xa, 0.15, 5) };
 }
 
 export const needsWinner = (kind: MatchKind): boolean => kind !== 'group';
@@ -100,35 +96,40 @@ export function shootoutWinProb(homeOvr: number, awayOvr: number): number {
 // ---------- Simulação de um jogo ----------
 export interface SimContext { kind: MatchKind; xh: number; xa: number; homeOvr: number; awayOvr: number }
 
-/** Minutos dos gols espalhados ao acaso no intervalo (só para o relatório da partida) */
-function goalMinutes(n: number, from: number, to: number): number[] {
-  return Array.from({ length: n }, () => from + 1 + Math.floor(rand() * (to - from))).sort((a, b) => a - b);
-}
-
-export function simulateMatch(ctx: SimContext): MatchResult {
+/**
+ * Sorteia o resultado. Primeiro as contagens (gols, prorrogação, pênaltis), sempre na mesma ordem;
+ * só depois, se timeline = true, os minutos dos gols (uniformes no tempo, como na partida ao vivo).
+ * Assim a distribuição dos placares é idêntica com ou sem linha do tempo (o Monte Carlo usa false).
+ */
+export function simulateMatch(ctx: SimContext, timeline = true): MatchResult {
   const gH = poisson(ctx.xh);
   const gA = poisson(ctx.xa);
   const res: MatchResult = { gH, gA, et: false, penH: null, penA: null };
-  const events: [number, 0 | 1, 0 | 1][] = [
-    ...goalMinutes(gH, 0, 90).map(m => [m, 0, 1] as [number, 0, 1]),
-    ...goalMinutes(gA, 0, 90).map(m => [m, 1, 1] as [number, 1, 1])
-  ];
-  if (needsWinner(ctx.kind) && res.gH === res.gA) {
+  let eh = 0, ea = 0;
+  let P: Shootout | null = null;
+  if (needsWinner(ctx.kind) && gH === gA) {
     if (ctx.kind === 'ko') {
       res.et = true;
-      const eh = poisson(ctx.xh * ET_FRACTION);
-      const ea = poisson(ctx.xa * ET_FRACTION);
+      eh = poisson(ctx.xh * ET_FRACTION);
+      ea = poisson(ctx.xa * ET_FRACTION);
       res.gH += eh;
       res.gA += ea;
-      events.push(...goalMinutes(eh, 90, 120).map(m => [m, 0, 1] as [number, 0, 1]), ...goalMinutes(ea, 90, 120).map(m => [m, 1, 1] as [number, 1, 1]));
     }
     if (res.gH === res.gA) {
-      const P = simulateShootout(ctx.homeOvr, ctx.awayOvr);
+      P = simulateShootout(ctx.homeOvr, ctx.awayOvr);
       res.penH = P.h;
       res.penA = P.a;
     }
   }
-  res.events = events.sort((a, b) => a[0] - b[0]);
+  if (timeline) {
+    const gm: [number, 0 | 1][] = [];
+    for (let i = 0; i < gH; i++) gm.push([1 + Math.floor(rand() * 90), 0]);
+    for (let i = 0; i < gA; i++) gm.push([1 + Math.floor(rand() * 90), 1]);
+    for (let i = 0; i < eh; i++) gm.push([91 + Math.floor(rand() * 30), 0]);
+    for (let i = 0; i < ea; i++) gm.push([91 + Math.floor(rand() * 30), 1]);
+    res.gm = gm.sort((a, b) => a[0] - b[0]);
+    if (P) res.pk = { f: P.first, h: P.kicks.home.map(Number), a: P.kicks.away.map(Number) };
+  }
   return res;
 }
 
@@ -173,6 +174,59 @@ export function matchOdds(ctx: SimContext, state?: { hSc: number; aSc: number; r
   const o = outcomeProbs(ctx.xh * rem, ctx.xa * rem, lead);
   if (!needsWinner(ctx.kind)) return o;
   return { ...o, advH: o.ph + o.pd * tieBreakWinProb(ctx.kind, ctx.xh, ctx.xa, ctx.homeOvr, ctx.awayOvr) };
+}
+
+/**
+ * Chance exata de o mandante vencer uma disputa já em andamento (recursão memorizada sobre o placar).
+ * No estado inicial é igual a shootoutWinProb.
+ */
+export function penWinFrom(P: Pick<Shootout, 'h' | 'a' | 'hk' | 'ak' | 'first'>, homeOvr: number, awayOvr: number): number {
+  const p = penKickProb(homeOvr, awayOvr), q = penKickProb(awayOvr, homeOvr);
+  const sd = (p * (1 - q)) / (p * (1 - q) + q * (1 - p));
+  const memo = new Map<string, number>();
+  const rec = (h: number, a: number, hk: number, ak: number): number => {
+    const S = { h, a, hk, ak, first: P.first, kicks: { home: [], away: [] }, userCols: [] } as Shootout;
+    if (shootoutOver(S)) return h > a ? 1 : 0;
+    if (hk >= 5 && ak >= 5 && hk === ak && h === a) return sd;
+    const key = `${h},${a},${hk},${ak}`;
+    const hit = memo.get(key);
+    if (hit !== undefined) return hit;
+    const v = nextKickerIsHome(S)
+      ? p * rec(h + 1, a, hk + 1, ak) + (1 - p) * rec(h, a, hk + 1, ak)
+      : q * rec(h, a + 1, hk, ak + 1) + (1 - q) * rec(h, a, hk, ak + 1);
+    memo.set(key, v);
+    return v;
+  };
+  return rec(P.h, P.a, P.hk, P.ak);
+}
+
+export interface LiveClock {
+  min: number;
+  hSc: number;
+  aSc: number;
+  period: 'REG' | 'ET' | 'PEN';
+  pen?: Pick<Shootout, 'h' | 'a' | 'hk' | 'ak' | 'first'> | null;
+}
+
+/**
+ * Chance ao vivo se o resto do jogo fosse simulado: é exatamente o que "Pular para o Fim" sorteia
+ * (Poisson no tempo que falta; prorrogação e pênaltis com as mesmas regras). Visão do mandante.
+ */
+export function liveOdds(ctx: SimContext, s: LiveClock): Odds {
+  if (s.period === 'PEN' && s.pen) return { ph: 0, pd: 1, pa: 0, advH: penWinFrom(s.pen, ctx.homeOvr, ctx.awayOvr) };
+  if (s.period === 'ET') return matchOdds(ctx, { hSc: s.hSc, aSc: s.aSc, remaining: Math.max(0, 120 - s.min) / 30, period: 'ET' });
+  return matchOdds(ctx, { hSc: s.hSc, aSc: s.aSc, remaining: Math.max(0, 90 - s.min) / 90, period: 'REG' });
+}
+
+/** Chance do lado escolhido: vitória/empate/derrota e, quando o jogo precisa de vencedor, de avançar */
+export function sideOdds(o: Odds, side: Side): { win: number; draw: number; loss: number; adv?: number } {
+  const home = side === 'home';
+  return {
+    win: home ? o.ph : o.pa,
+    draw: o.pd,
+    loss: home ? o.pa : o.ph,
+    adv: o.advH === undefined ? undefined : home ? o.advH : 1 - o.advH
+  };
 }
 
 /** Placar mais provável (para o relatório da partida) */

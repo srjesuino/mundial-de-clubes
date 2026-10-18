@@ -6,7 +6,7 @@ import { createTournament } from '../engine/tournament';
 import type { Confederation, Config } from '../engine/types';
 import { loadGame, saveGame, store } from '../state/store';
 import { logoImg } from './crest';
-import { $, askConfirm, hideEl, isShown, normalizeText, setHidden, showEl, toast } from './dom';
+import { $, askConfirm, escapeHtml, hideEl, isShown, normalizeText, setHidden, showEl, toast } from './dom';
 import { enterDashboard } from './dashboard';
 
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -26,7 +26,8 @@ function readConfig(): Config {
     drawType: input('sb-draw-type').value as Config['drawType'],
     totalTeamsSwiss: num('sb-total-teams-swiss'),
     totalTeamsKnockout: num('sb-total-teams'),
-    fillMethod: input('sb-fill-method').value as Config['fillMethod']
+    fillMethod: input('sb-fill-method').value as Config['fillMethod'],
+    difficulty: (['facil', 'normal', 'dificil', 'lenda'].includes(input('sb-difficulty').value) ? input('sb-difficulty').value : 'normal') as Config['difficulty']
   };
 }
 
@@ -63,9 +64,9 @@ function buildSelectGrid(): void {
     btn.dataset.name = normalizeText(team.name);
     btn.dataset.tags = normalizeText(`${team.country} ${COUNTRY_NAMES[team.country] ?? ''} ${conf}`);
     btn.innerHTML = `
-      <div class="absolute top-0 right-0 bg-slate-900 px-2 py-1 text-[10px] font-bold rounded-bl text-slate-500">${team.country}</div>
+      <div class="absolute top-0 right-0 bg-slate-900 px-2 py-1 text-[10px] font-bold rounded-bl text-slate-500">${escapeHtml(team.country)}</div>
       ${logoImg(team, 'tm-logo')}
-      <div class="font-bold text-center leading-tight text-sm">${team.name}</div>
+      <div class="font-bold text-center leading-tight text-sm">${escapeHtml(team.name)}</div>
       <div class="text-[10px] bg-emerald-900/60 text-emerald-400 px-2 py-1 rounded-full border border-emerald-500/30">OVR ${team.ovr}</div>`;
     btn.onclick = () => toggleSelectTeam(team.id);
     grid.appendChild(btn);
@@ -142,7 +143,7 @@ export function resetSelection(): void {
 function refreshSelectGridSafe(): void { if (store.cfg) refreshSelectGrid(); }
 
 // ---------- Início do torneio ----------
-function startTournament(slots: Partial<Record<Confederation, number>> | null): void {
+export function startTournament(slots: Partial<Record<Confederation, number>> | null): void {
   try {
     store.t = createTournament(cfg(), store.selectedIds, slots);
   } catch (e) {

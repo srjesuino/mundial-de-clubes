@@ -1,17 +1,30 @@
-// Minigames da partida ao vivo: chance de ataque, defesa e pênaltis
-import { COL_LOOK, COL_SPOT, LIVE, PEN_ROW, aiPenaltyKick, keeperGuess, ovrWindow, penaltyOutcome, type PenaltyOutcome } from '../engine/live';
+// Minigames da partida ao vivo: chance de ataque, defesa e pênaltis.
+// Toque, mouse e teclado passam pelo mesmo .click() do botão: a mesma trava e as mesmas janelas valem para todos.
+import { COL_LOOK, COL_SPOT, PEN_ROW, aiPenaltyKick, diffOf, keeperGuess, ovrWindow, penaltyOutcome, type DiffParams, type PenaltyOutcome } from '../engine/live';
 import { rand, shuffle } from '../engine/rng';
 import type { TeamState } from '../engine/types';
+import { store } from '../state/store';
 import { $, hideEl, setHidden, showEl } from './dom';
+import * as sfx from './sound';
 
 type Commit = (goal: boolean, why?: string) => void;
+type Sfx = 'goal' | 'save' | 'post' | 'miss';
 
-const MG: { timers: number[]; active: boolean; onClose: (() => void) | null } = { timers: [], active: false, onClose: null };
+const MG: {
+  timers: number[];
+  active: boolean;
+  onClose: (() => void) | null;
+  cells: HTMLButtonElement[];
+  targets: HTMLButtonElement[];
+  ball: HTMLButtonElement | null;
+  mode: 'att' | 'def' | 'penS' | 'penD' | null;
+} = { timers: [], active: false, onClose: null, cells: [], targets: [], ball: null, mode: null };
+
 const BOX_WIDE = 'relative w-full max-w-2xl aspect-[4/3] sm:aspect-[2/1] border-4 border-b-0 border-white/80 rounded-t shadow-[inset_0_0_50px_rgba(255,255,255,0.2)] bg-emerald-900/20 overflow-hidden';
 const BOX_PEN = 'relative w-full max-w-md aspect-[3/2] border-4 border-b-0 border-white/80 rounded-t shadow-[inset_0_0_50px_rgba(255,255,255,0.2)] bg-emerald-900/20 overflow-hidden';
 
-/** Ajustes de dificuldade (escala das janelas de reação); 1 = normal */
-export const MG_SETTINGS = { windowScale: 1 };
+/** Parâmetros da dificuldade do torneio em andamento (Normal = valores calibrados) */
+export const curDiff = (): DiffParams => diffOf(store.t?.config.difficulty);
 
 export const minigameActive = (): boolean => MG.active;
 /** Continuação a executar depois que o aviso do lance fecha */
@@ -19,11 +32,29 @@ export const setMinigameOnClose = (fn: (() => void) | null): void => { MG.onClos
 
 function mgTimer(fn: () => void, ms: number): void { MG.timers.push(window.setTimeout(fn, ms)); }
 
-function mgOpen(title: string, subtitle: string, boxClass: string, inShootout: boolean): void {
+/** Tique-taque nos últimos instantes do tempo de reação */
+function mgTicks(ms: number): void {
+  [1000, 500, 250].forEach(before => { if (ms - before > 0) mgTimer(sfx.tick, ms - before); });
+}
+
+// Último tipo de entrada usado: os números de tecla só aparecem para quem está no teclado
+let lastInput: 'key' | 'pointer' = 'pointer';
+document.addEventListener('pointerdown', () => { lastInput = 'pointer'; }, true);
+document.addEventListener('keydown', () => { lastInput = 'key'; }, true);
+
+function resetInputs(): void {
+  MG.cells = [];
+  MG.targets = [];
+  MG.ball = null;
+}
+
+function mgOpen(title: string, subtitle: string, boxClass: string, inShootout: boolean, mode: NonNullable<typeof MG.mode>): void {
   MG.timers.forEach(clearTimeout);
   MG.timers = [];
   MG.active = true;
   MG.onClose = null;
+  MG.mode = mode;
+  resetInputs();
   $('mg-title').textContent = title;
   $('mg-subtitle').textContent = subtitle;
   $('mg-targets').innerHTML = '';
@@ -36,8 +67,10 @@ function mgOpen(title: string, subtitle: string, boxClass: string, inShootout: b
   bar.style.transition = 'none';
   bar.style.width = '100%';
   $('screen-match').inert = true;
-  showEl('minigame-overlay');
-  $('minigame-overlay').focus({ preventScroll: true });
+  const ov = $('minigame-overlay');
+  ov.setAttribute('aria-describedby', 'mg-subtitle');
+  showEl(ov);
+  ov.focus({ preventScroll: true });
 }
 
 function mgStartBar(ms: number): void {
@@ -61,8 +94,10 @@ function mgClose(): void {
   $('screen-match').inert = false;
 }
 
+const SFX_PLAY: Record<Sfx, () => void> = { goal: sfx.net, save: sfx.save, post: sfx.post, miss: sfx.miss };
+
 /** Encerra o minigame uma única vez (protege contra clique + timeout simultâneos) */
-function mgFinish(text: string, color: string, commit: () => void, delay = 850, timedOut = false): void {
+function mgFinish(text: string, color: string, commit: () => void, delay = 850, timedOut = false, sound?: Sfx): void {
   if (!MG.active) return;
   MG.active = false;
   MG.timers.forEach(clearTimeout);
@@ -71,6 +106,7 @@ function mgFinish(text: string, color: string, commit: () => void, delay = 850, 
   const fb = $('mg-feedback');
   fb.textContent = text;
   fb.className = `min-h-[2.5rem] sm:min-h-[3rem] mt-2 text-center text-2xl sm:text-4xl font-black ${color}`;
+  if (sound) SFX_PLAY[sound]();
   commit(); // o resultado vale a partir de agora; o aviso só fecha depois
   MG.timers.push(window.setTimeout(mgFlush, delay));
 }
@@ -80,15 +116,20 @@ function mgFlush(): void {
   MG.onClose = null;
   MG.timers.forEach(clearTimeout);
   MG.timers = [];
+  MG.mode = null;
+  resetInputs();
   mgClose();
+  $('match-card').focus({ preventScroll: true });
   next?.();
 }
 
 export function mgAbort(): void {
   MG.active = false;
   MG.onClose = null;
+  MG.mode = null;
   MG.timers.forEach(clearTimeout);
   MG.timers = [];
+  resetInputs();
   mgClose();
 }
 
@@ -103,14 +144,14 @@ function slotPos(slot: number): { left: number; top: number } {
   return { left: 10 + col * 20 + (rand() * 4 - 2), top: 18 + row * 32 + (rand() * 4 - 2) };
 }
 
-const scaled = (ms: number) => Math.round(ms * MG_SETTINGS.windowScale);
-
-/** Ataque: um canto livre (🎯) e três cobertos pelo goleiro (🧤) */
+/** Ataque: um canto livre (🎯) e os outros cobertos pelo goleiro (🧤) */
 export function attackMinigame(att: TeamState, def: TeamState, cb: Commit): void {
-  const time = scaled(ovrWindow(1000, att.ovr - def.ovr));
-  mgOpen('⚽ CHANCE DE GOL!', `${att.name} no ataque — toque no canto livre 🎯 antes que a zaga feche!`, BOX_WIDE, false);
-  const slots = shuffle([...Array(15).keys()]).slice(0, 4);
-  const goodIdx = Math.floor(rand() * 4); // ordem no DOM aleatória: o 1º Tab não entrega o canto livre
+  const D = curDiff();
+  const time = ovrWindow(1000 * D.win, att.ovr - def.ovr);
+  mgOpen('⚽ CHANCE DE GOL!', `${att.name} no ataque — toque no canto livre 🎯 antes que a zaga feche!`, BOX_WIDE, false, 'att');
+  const slots = shuffle([...Array(15).keys()]).slice(0, D.gloves + 1);
+  const goodIdx = Math.floor(rand() * (D.gloves + 1)); // ordem no DOM aleatória: o 1º Tab não entrega o canto livre
+  const placed: { btn: HTMLButtonElement; left: number; top: number }[] = [];
   slots.forEach((s, i) => {
     const good = i === goodIdx;
     const pos = slotPos(s);
@@ -122,29 +163,44 @@ export function attackMinigame(att: TeamState, def: TeamState, cb: Commit): void
     btn.setAttribute('aria-label', good ? 'Canto livre' : 'Canto coberto pelo goleiro');
     onHit(btn, () => {
       if (!MG.active) return;
+      sfx.kick();
       if (good) {
-        if (rand() < LIVE.aimGoal) mgFinish('GOOOOL!', 'text-emerald-400', () => cb(true));
-        else if (rand() < 0.5) mgFinish('NA TRAVE!', 'text-amber-300', () => cb(false, 'Achou o canto livre, mas a bola explodiu na trave!'));
-        else mgFinish('QUE DEFESA!', 'text-amber-300', () => cb(false, `Achou o canto livre, mas o goleiro do ${def.name} voou e espalmou!`));
-      } else if (rand() < LIVE.keeperGoal) {
-        mgFinish('GOL! O GOLEIRO SOLTOU!', 'text-emerald-400', () => cb(true));
+        if (rand() < D.aimGoal) mgFinish('GOOOOL!', 'text-emerald-400', () => cb(true), 850, false, 'goal');
+        else if (rand() < 0.5) mgFinish('NA TRAVE!', 'text-amber-300', () => cb(false, 'Achou o canto livre, mas a bola explodiu na trave!'), 850, false, 'post');
+        else mgFinish('QUE DEFESA!', 'text-amber-300', () => cb(false, `Achou o canto livre, mas o goleiro do ${def.name} voou e espalmou!`), 850, false, 'save');
+      } else if (rand() < D.keeperGoal) {
+        mgFinish('GOL! O GOLEIRO SOLTOU!', 'text-emerald-400', () => cb(true), 850, false, 'goal');
       } else {
-        mgFinish('O GOLEIRO DEFENDEU!', 'text-red-400', () => cb(false, `Chutou onde o goleiro estava. Defesa do ${def.name}!`));
+        mgFinish('O GOLEIRO DEFENDEU!', 'text-red-400', () => cb(false, `Chutou onde o goleiro estava. Defesa do ${def.name}!`), 850, false, 'save');
       }
     });
     $('mg-targets').appendChild(btn);
+    placed.push({ btn, ...pos });
   });
+  // Teclas 1..n seguem a ordem visual da esquerda para a direita (não revelam nada que não esteja na tela)
+  MG.targets = placed.sort((a, b) => a.left - b.left || a.top - b.top).map(p => p.btn);
+  if (lastInput === 'key') {
+    MG.targets.forEach((b, i) => {
+      const badge = document.createElement('span');
+      badge.className = 'absolute -top-2 -right-2 bg-slate-950 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border border-slate-500';
+      badge.textContent = String(i + 1);
+      badge.setAttribute('aria-hidden', 'true');
+      b.appendChild(badge);
+    });
+  }
   mgStartBar(time);
+  mgTicks(time);
   mgTimer(() => {
-    if (rand() < LIVE.lateGoal) mgFinish('DESVIOU E ENTROU!', 'text-emerald-400', () => cb(true), 850, true);
-    else mgFinish('DEMOROU!', 'text-red-400', () => cb(false, 'Demorou para finalizar e a zaga travou o chute.'), 850, true);
+    if (rand() < D.lateGoal) mgFinish('DESVIOU E ENTROU!', 'text-emerald-400', () => cb(true), 850, true, 'goal');
+    else mgFinish('DEMOROU!', 'text-red-400', () => cb(false, 'Demorou para finalizar e a zaga travou o chute.'), 850, true, 'miss');
   }, time);
 }
 
 /** Defesa: a bola aparece num ponto do gol após um instante; toque nela a tempo */
 export function defenseMinigame(att: TeamState, def: TeamState, cb: Commit): void {
-  const time = scaled(ovrWindow(750, def.ovr - att.ovr));
-  mgOpen('🧤 DEFENDA O CHUTE!', `${att.name} vai finalizar — toque na bola antes que ela entre!`, BOX_WIDE, false);
+  const D = curDiff();
+  const time = ovrWindow(750 * D.win, def.ovr - att.ovr);
+  mgOpen('🧤 DEFENDA O CHUTE!', `${att.name} vai finalizar — toque na bola antes que ela entre!`, BOX_WIDE, false, 'def');
   mgTimer(() => {
     if (!MG.active) return;
     const pos = slotPos(Math.floor(rand() * 15));
@@ -156,14 +212,17 @@ export function defenseMinigame(att: TeamState, def: TeamState, cb: Commit): voi
     ball.setAttribute('aria-label', 'Bola');
     onHit(ball, () => {
       if (!MG.active) return;
-      if (rand() < LIVE.touchedGoal) mgFinish('TOCOU, MAS ENTROU...', 'text-red-400', () => cb(true));
-      else mgFinish('DEFESAÇA!', 'text-emerald-400', () => cb(false, `Defesaça! O goleiro salvou o chute do ${att.name}.`));
+      if (rand() < D.touchedGoal) mgFinish('TOCOU, MAS ENTROU...', 'text-red-400', () => cb(true), 850, false, 'goal');
+      else mgFinish('DEFESAÇA!', 'text-emerald-400', () => cb(false, `Defesaça! O goleiro salvou o chute do ${att.name}.`), 850, false, 'save');
     });
     $('mg-targets').appendChild(ball);
+    MG.ball = ball;
+    sfx.kick();
     mgStartBar(time);
+    mgTicks(time);
     mgTimer(() => {
-      if (rand() < LIVE.missedGoal) mgFinish('GOL DELES...', 'text-red-400', () => cb(true), 850, true);
-      else mgFinish('NA TRAVE! UFA!', 'text-amber-300', () => cb(false, `Não deu tempo de reagir, mas o chute do ${att.name} explodiu na trave!`), 850, true);
+      if (rand() < D.missedGoal) mgFinish('GOL DELES...', 'text-red-400', () => cb(true), 850, true, 'goal');
+      else mgFinish('NA TRAVE! UFA!', 'text-amber-300', () => cb(false, `Não deu tempo de reagir, mas o chute do ${att.name} explodiu na trave!`), 850, true, 'post');
     }, time);
   }, 300 + rand() * 700);
 }
@@ -172,7 +231,7 @@ export function defenseMinigame(att: TeamState, def: TeamState, cb: Commit): voi
 function penGridCells(): HTMLButtonElement[] {
   $('mg-targets').innerHTML = '<div id="pen-grid" class="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-1.5 p-2 sm:p-3"></div>';
   const grid = $('pen-grid');
-  return Array.from({ length: 9 }, (_, i) => {
+  MG.cells = Array.from({ length: 9 }, (_, i) => {
     const c = document.createElement('button');
     c.className = 'w-full h-full bg-slate-800/60 border-2 border-slate-600/70 rounded-lg flex items-center justify-center text-2xl sm:text-3xl transition hover:bg-slate-700/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-yellow-300';
     c.dataset.idx = String(i);
@@ -180,6 +239,7 @@ function penGridCells(): HTMLButtonElement[] {
     grid.appendChild(c);
     return c;
   });
+  return MG.cells;
 }
 
 function revealPenalty(cells: HTMLButtonElement[], col: number, row: number, keeperCol: number, outcome: PenaltyOutcome): void {
@@ -191,34 +251,68 @@ function revealPenalty(cells: HTMLButtonElement[], col: number, row: number, kee
   ballCell.classList.add(outcome.goal ? 'border-emerald-400' : 'border-red-400');
 }
 
+const penSound = (o: PenaltyOutcome): Sfx => (o.goal ? 'goal' : o.miss ? 'miss' : 'save');
+
 /** Toque no gol só conta como 'click' (arrastar para rolar a tela não chuta) */
 export function penaltyShootMinigame(att: TeamState, def: TeamState, userCols: number[], cb: Commit): void {
-  mgOpen('PÊNALTI! ESCOLHA O CANTO', 'Alto: difícil de defender, mas pode isolar · Rasteiro: quase nunca sai, mas é mais defensável · o goleiro lê as batidas repetidas', BOX_PEN, true);
+  const D = curDiff();
+  mgOpen('PÊNALTI! ESCOLHA O CANTO', 'Alto: difícil de defender, mas pode isolar · Rasteiro: quase nunca sai, mas é mais defensável · o goleiro lê as batidas repetidas', BOX_PEN, true, 'penS');
   const cells = penGridCells();
   cells.forEach((c, i) => c.addEventListener('click', () => {
     if (!MG.active) return;
     const col = i % 3, row = Math.floor(i / 3);
-    const keeperCol = keeperGuess(userCols);
+    const keeperCol = keeperGuess(userCols, D.learn);
     userCols.push(col);
     const out = penaltyOutcome(att.ovr, def.ovr, col, row, keeperCol);
     revealPenalty(cells, col, row, keeperCol, out);
-    mgFinish(out.goal ? 'GOOOL!' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-emerald-400' : 'text-red-400', () => cb(out.goal, out.why), 1300);
+    sfx.kick();
+    mgFinish(out.goal ? 'GOOOL!' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-emerald-400' : 'text-red-400', () => cb(out.goal, out.why), 1300, false, penSound(out));
   }));
-  mgStartBar(5000);
-  mgTimer(() => mgFinish('HESITOU!', 'text-red-400', () => cb(false, 'hesitou na batida e o goleiro pegou fácil.'), 1000, true), 5000);
+  mgStartBar(D.penShootMs);
+  mgTicks(D.penShootMs);
+  mgTimer(() => mgFinish('HESITOU!', 'text-red-400', () => cb(false, 'hesitou na batida e o goleiro pegou fácil.'), 1000, true, 'save'), D.penShootMs);
 }
 
 export function penaltyDefendMinigame(att: TeamState, def: TeamState, cb: Commit): void {
-  const kick = aiPenaltyKick(att.ovr, def.ovr);
-  mgOpen('🧤 DEFENDA O PÊNALTI!', `👀 O batedor do ${att.name} parece olhar para ${COL_LOOK[kick.hint]}... mas pode estar disfarçando. Toque numa coluna para pular!`, BOX_PEN, true);
+  const D = curDiff();
+  const kick = aiPenaltyKick(att.ovr, def.ovr, D.rel);
+  mgOpen('🧤 DEFENDA O PÊNALTI!', `👀 O batedor do ${att.name} parece olhar para ${COL_LOOK[kick.hint]}... mas pode estar disfarçando. Toque numa coluna para pular!`, BOX_PEN, true, 'penD');
   const cells = penGridCells();
   const dive = (diveCol: number) => {
     if (!MG.active) return;
     const out = penaltyOutcome(att.ovr, def.ovr, kick.col, kick.row, diveCol);
     revealPenalty(cells, kick.col, kick.row, diveCol, out);
-    mgFinish(out.goal ? 'GOL DELES...' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-red-400' : 'text-emerald-400', () => cb(out.goal, out.why), 1300);
+    sfx.kick();
+    mgFinish(out.goal ? 'GOL DELES...' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-red-400' : 'text-emerald-400', () => cb(out.goal, out.why), 1300, false, penSound(out));
   };
   cells.forEach((c, i) => c.addEventListener('click', () => dive(i % 3)));
-  mgStartBar(3500);
-  mgTimer(() => dive(1), 3500); // sem reação: o goleiro fica no meio
+  mgStartBar(D.penDefMs);
+  mgTicks(D.penDefMs);
+  mgTimer(() => dive(1), D.penDefMs); // sem reação: o goleiro fica no meio
+}
+
+// ---------- Teclado ----------
+const PEN_KEYS: Record<string, number> = { q: 0, w: 1, e: 2, a: 3, s: 4, d: 5, z: 6, x: 7, c: 8 };
+const NUMPAD: Record<string, number> = { Numpad7: 0, Numpad8: 1, Numpad9: 2, Numpad4: 3, Numpad5: 4, Numpad6: 5, Numpad1: 6, Numpad2: 7, Numpad3: 8 };
+
+/** Teclas do minigame aberto. Devolve true se a tecla foi tratada (o despachante para aí). */
+export function minigameKey(e: KeyboardEvent): boolean {
+  if (!MG.active) return false;
+  const k = e.key.toLowerCase();
+  if (MG.mode === 'penS' || MG.mode === 'penD') {
+    let idx = NUMPAD[e.code] ?? PEN_KEYS[k];
+    if (MG.mode === 'penD' && idx === undefined) idx = ({ arrowleft: 3, arrowdown: 4, arrowright: 5 } as Record<string, number>)[k];
+    if (idx !== undefined && MG.cells[idx]) { MG.cells[idx].click(); return true; }
+    return false;
+  }
+  if (MG.mode === 'att' && /^[1-9]$/.test(e.key)) {
+    const b = MG.targets[Number(e.key) - 1];
+    if (b) { b.click(); return true; }
+    return false;
+  }
+  if (MG.mode === 'def' && (e.key === ' ' || e.key === 'Enter')) {
+    MG.ball?.click(); // antes de a bola aparecer, a tecla não faz nada (apertar cedo não ajuda)
+    return true;
+  }
+  return false;
 }

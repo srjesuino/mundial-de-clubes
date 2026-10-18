@@ -15,7 +15,13 @@
 
     <div id="app" class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-screen flex flex-col">
 
-        <header class="text-center mb-6 shrink-0">
+        <header class="relative text-center mb-6 shrink-0">
+            <div class="relative z-10 flex justify-end gap-1 mb-1 md:mb-0 md:absolute md:right-0 md:top-0">
+                <button id="btn-sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som (tecla M)"
+                    class="icon-btn">🔊</button>
+                <button id="btn-settings" type="button" aria-label="Preferências" title="Preferências"
+                    class="icon-btn">⚙️</button>
+            </div>
             <h1
                 class="text-3xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 uppercase drop-shadow-lg">
                 Mundial de Clubes 64
@@ -37,6 +43,11 @@
                     <button id="btn-continue-save"
                         class="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black transition shadow-lg shadow-emerald-500/30">Continuar</button>
                 </div>
+            </div>
+
+            <div class="flex justify-center mb-6">
+                <button id="btn-hall-config" type="button"
+                    class="px-4 py-2 min-h-[44px] rounded-lg bg-amber-900/30 hover:bg-amber-800/40 border border-amber-500/30 text-amber-200 font-bold transition">🏛️ Galeria de Campeões</button>
             </div>
 
             <h2 class="text-3xl font-black mb-2 text-center text-indigo-400 uppercase">Sandbox Mode</h2>
@@ -113,6 +124,18 @@
                     </select>
                 </div>
 
+                <!-- Dificuldade dos minigames -->
+                <div class="flex flex-col gap-2 md:col-span-2">
+                    <label for="sb-difficulty" class="text-slate-300 font-bold text-sm">Dificuldade dos Minigames</label>
+                    <select autocomplete="off" id="sb-difficulty" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="facil">Fácil (janelas maiores, goleiro adversário lê menos)</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="lenda">Lenda</option>
+                    </select>
+                    <p class="text-[11px] text-slate-500">Só muda os minigames das partidas ao vivo. Simular e as probabilidades continuam iguais.</p>
+                </div>
+
                 <!-- Fill Config -->
                 <div class="flex flex-col gap-2 md:col-span-2 mt-4 pt-4 border-t border-slate-700">
                     <label for="sb-fill-method" class="text-slate-300 font-bold text-sm">Distribuição de Times NPCs</label>
@@ -175,6 +198,7 @@
                         </div>
                         <p id="dash-phase" class="text-emerald-400 font-bold uppercase tracking-widest text-xs md:text-sm mt-1">Fase de Grupos</p>
                         <p id="dash-team-status" class="text-slate-400 text-xs mt-1"></p>
+                        <p id="dash-super" class="hidden text-xs text-amber-300 font-bold mt-1 cursor-help" title="pelos OVRs do simulador: a chance de ir tão bem em cada um destes jogos, um a um"></p>
                     </div>
                 </div>
 
@@ -223,6 +247,8 @@
                                 <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-800" id="odds-bar"></div>
                                 <div class="flex justify-between gap-1 text-[11px] font-semibold text-slate-400 mt-1.5" id="odds-legend"></div>
                                 <p class="text-[10px] text-slate-500 mt-1">Probabilidades do simulador (pelo OVR). Jogando ao vivo, sua habilidade muda as chances.</p>
+                                <div id="next-scenarios" class="hidden mt-2 text-[11px] text-slate-300 bg-slate-800/70 border border-slate-700 rounded-lg px-2 py-1.5"></div>
+                                <div id="next-skill" class="hidden mt-2 text-[10px] text-slate-400 leading-snug"></div>
                             </div>
                         </div>
                     </div>
@@ -230,6 +256,7 @@
                     <div>
                         <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Campanha no Torneio</h4>
                         <div class="grid grid-cols-6 gap-1 text-center" id="dash-campaign"></div>
+                        <button id="dash-mc" type="button" class="hidden w-full mt-3 flex items-center justify-between gap-2 text-left text-xs bg-slate-900/60 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-2 min-h-[44px] transition"></button>
                     </div>
 
                     <div class="flex flex-col gap-3">
@@ -241,6 +268,14 @@
                             class="bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 font-semibold py-2 px-4 rounded-lg border border-indigo-500/30 transition">Histórico de Resultados</button>
                         <button id="btn-view-stats"
                             class="bg-cyan-900/40 hover:bg-cyan-800/40 text-cyan-300 font-semibold py-2 px-4 rounded-lg border border-cyan-500/30 transition">Estatísticas do Torneio</button>
+                        <button id="btn-view-odds"
+                            class="bg-violet-900/40 hover:bg-violet-800/40 text-violet-300 font-semibold py-2 px-4 rounded-lg border border-violet-500/30 transition">📊 Probabilidades</button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btn-view-hall"
+                                class="bg-amber-900/30 hover:bg-amber-800/40 text-amber-200 font-semibold py-2 px-3 rounded-lg border border-amber-500/30 transition text-sm">🏛️ Galeria</button>
+                            <button id="btn-share"
+                                class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-600 transition text-sm">📋 Copiar resumo</button>
+                        </div>
                         <button id="btn-new-tournament"
                             class="bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold py-2 px-4 rounded-lg border border-red-500/20 transition text-sm">Novo Torneio</button>
                         <p class="text-[11px] text-slate-500 text-center">💾 O progresso é salvo automaticamente neste navegador.</p>
@@ -294,10 +329,12 @@
         <!-- TELA 3: SIMULADOR DE JOGO -->
         <div id="screen-match"
             class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div id="match-card"
-                class="w-full max-w-4xl glass rounded-3xl border border-slate-600 overflow-hidden shadow-2xl flex flex-col h-[94vh] sm:h-[88vh]">
+            <div id="match-card" tabindex="-1"
+                class="focus:outline-none w-full max-w-4xl glass rounded-3xl border border-slate-600 overflow-hidden shadow-2xl flex flex-col h-[94vh] sm:h-[88vh]">
 
                 <div id="match-header" class="shrink-0 bg-gradient-to-b from-slate-800 to-slate-900 p-4 md:p-8 border-b border-slate-700 relative">
+                    <button id="btn-live-sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som (tecla M)"
+                        class="icon-btn absolute top-1.5 left-2 md:top-3 md:left-4">🔊</button>
                     <div class="absolute top-3 right-4 md:top-4 md:right-6 text-emerald-400 font-black text-lg md:text-2xl tabular-nums" id="match-clock">00'</div>
                     <div class="text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 md:mb-6 px-14 md:px-20"
                         id="match-header-context">Rodada 1</div>
@@ -328,11 +365,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Chance ao vivo pelo placar e pelo tempo restante (mesmo modelo do simulador) -->
-                    <div id="live-odds" class="hidden mt-3 md:mt-4 max-w-xl mx-auto">
-                        <div class="flex h-2 rounded-full overflow-hidden bg-slate-800" id="live-odds-bar"></div>
-                        <div class="flex justify-between gap-2 text-[10px] md:text-[11px] font-semibold text-slate-400 mt-1 tabular-nums" id="live-odds-legend"></div>
-                    </div>
                     <!-- Placar dos pênaltis em linha própria (no celular ele cobria os nomes) -->
                     <div id="pen-board" class="hidden mt-3 text-[11px] font-bold text-slate-300 flex flex-col gap-1 items-center"></div>
                 </div>
@@ -341,14 +373,32 @@
                     <div id="match-progress" class="h-full bg-emerald-500 w-0 transition-all duration-100 ease-linear"></div>
                 </div>
 
-                <div class="flex-1 min-h-[4rem] p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scrollbar-thin" id="match-events"></div>
+                <!-- Chance minuto a minuto: o que "Pular para o Fim" sortearia a partir do placar e do tempo restante -->
+                <div id="match-viz" class="shrink-0 px-3 md:px-6 pt-2">
+                    <div id="wp-wrap" class="relative">
+                        <svg id="wp-svg" viewBox="0 0 120 40" preserveAspectRatio="none" role="img" aria-label="Chance ao longo do jogo"
+                            class="block w-full h-14 md:h-[72px] rounded bg-slate-900/70"></svg>
+                        <div id="wp-marks" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+                    </div>
+                    <div id="wp-legend" class="flex justify-between gap-2 text-[10px] md:text-[11px] font-semibold text-slate-400 mt-1 tabular-nums"></div>
+                    <p id="prancheta" class="hidden text-[10px] md:text-[11px] text-slate-400 text-center tabular-nums" title="pelo simulador (conversão média de 60%); seus reflexos mudam isso"></p>
+                    <p id="wp-caption" class="text-[9px] md:text-[10px] text-slate-500 text-center leading-tight">Chance se o resto do jogo fosse simulado (igual a Pular para o Fim). Seus reflexos mudam isso.</p>
+                </div>
+
+                <div class="flex-1 min-h-[3rem] p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scrollbar-thin" id="match-events"></div>
 
                 <div class="shrink-0 p-3 md:p-5 bg-slate-900 border-t border-slate-700 flex flex-wrap justify-center items-center gap-3">
                     <div id="speed-controls" class="flex items-center gap-1 bg-slate-800 rounded-xl p-1 border border-slate-700" role="group" aria-label="Velocidade">
-                        <button data-speed="1" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">1x</button>
-                        <button data-speed="2" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">2x</button>
-                        <button data-speed="4" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">4x</button>
+                        <button data-speed="1" title="Velocidade 1x (tecla 1)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">1x</button>
+                        <button data-speed="2" title="Velocidade 2x (tecla 2)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">2x</button>
+                        <button data-speed="4" title="Velocidade 4x (tecla 4)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">4x</button>
                     </div>
+                    <div id="live-tac" class="flex items-center gap-1 bg-slate-800 rounded-xl p-1 border border-slate-700" role="group" aria-label="Postura">
+                        <button data-tac="def" aria-label="Retranca (tecla R)" title="Retranca (tecla R): −25% de gols esperados para os dois lados" class="tac-btn">🛡️</button>
+                        <button data-tac="bal" aria-label="Equilibrado (tecla E)" title="Equilibrado (tecla E)" class="tac-btn">⚖️</button>
+                        <button data-tac="att" aria-label="Ofensivo (tecla O)" title="Ofensivo (tecla O): +30% de gols esperados para os dois lados" class="tac-btn">⚔️</button>
+                    </div>
+                    <button id="btn-live-settings" type="button" aria-label="Preferências" title="Preferências" class="icon-btn">⚙️</button>
                     <button id="btn-skip-match"
                         class="px-6 md:px-8 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition">Pular para o Fim</button>
                     <button id="btn-sim-pens"
@@ -531,7 +581,9 @@
                     <p id="champ-note" class="text-slate-300 mt-2"></p>
                     <p id="champ-user-msg" class="hidden mt-3 font-black text-emerald-400 text-lg"></p>
                 </div>
+                <div id="champ-ach" class="hidden mt-4"></div>
                 <div class="grid grid-cols-6 gap-1 mt-6 max-w-md mx-auto" id="champ-campaign"></div>
+                <p id="champ-super" class="hidden mt-3 text-amber-300 font-bold text-sm"></p>
                 <div class="mt-6 text-left">
                     <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Caminho até o título</h4>
                     <div class="flex flex-col gap-2" id="champ-path"></div>
@@ -543,6 +595,9 @@
                 <div class="mt-8 flex flex-wrap justify-center gap-3">
                     <button id="champ-btn-bracket" class="px-5 py-3 rounded-xl bg-fuchsia-900/60 hover:bg-fuchsia-800/60 text-fuchsia-200 font-bold border border-fuchsia-500/30">Ver Chaveamento</button>
                     <button id="champ-btn-stats" class="px-5 py-3 rounded-xl bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-200 font-bold border border-cyan-500/30">Estatísticas</button>
+                    <button id="champ-btn-hall" class="px-5 py-3 rounded-xl bg-amber-900/40 hover:bg-amber-800/50 text-amber-200 font-bold border border-amber-500/30">🏛️ Galeria</button>
+                    <button id="champ-btn-share" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-600">📋 Copiar resumo</button>
+                    <button id="champ-btn-rematch" class="px-5 py-3 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white font-black">🔁 Revanche (mesmas regras e clubes)</button>
                     <button id="champ-btn-new" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">Novo Torneio</button>
                 </div>
             </div>
@@ -558,6 +613,98 @@
             </div>
         </div>
 
+        <!-- PLANTÃO DA RODADA: placar de todos os jogos (resultados já sorteados e salvos antes do replay) -->
+        <div id="round-ticker" class="hidden fixed inset-0 bg-black/95 z-[65] p-3 md:p-8 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="tk-title">
+            <div class="w-full max-w-3xl mx-auto glass rounded-3xl p-4 md:p-6 border border-slate-600 shadow-2xl mt-2 mb-2">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
+                    <span id="tk-clock" class="text-emerald-400 font-black text-2xl md:text-3xl tabular-nums w-16">0'</span>
+                    <div class="min-w-0 flex-1 order-last basis-full sm:order-none sm:basis-0">
+                        <p class="hidden sm:block text-[10px] uppercase tracking-widest text-slate-500 font-bold">Plantão da rodada</p>
+                        <h2 id="tk-title" class="font-black text-sm sm:text-base md:text-xl leading-tight">Rodada</h2>
+                    </div>
+                    <p class="sm:hidden flex-1 text-[10px] uppercase tracking-widest text-slate-500 font-bold">Plantão da rodada</p>
+                    <button id="tk-fast" type="button" aria-pressed="false" class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-slate-800 border border-slate-600 text-xs font-black">2x</button>
+                    <button id="tk-skip" type="button" class="min-h-[44px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-black text-sm">Pular ▶▶</button>
+                </div>
+                <div id="tk-list" class="flex flex-col gap-1.5"></div>
+                <p id="tk-more" class="hidden text-center text-xs text-slate-500 mt-2"></p>
+                <div id="tk-tables" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: PREFERÊNCIAS -->
+        <div id="modal-settings" class="hidden fixed inset-0 bg-black/95 z-[86] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-settings" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl font-black mb-4 text-center text-slate-200 px-10">Preferências</h2>
+                <div id="settings-rows" class="flex flex-col gap-2"></div>
+                <div class="mt-5 bg-slate-900/60 border border-slate-700 rounded-xl p-4">
+                    <h3 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-2">Atalhos de teclado</h3>
+                    <ul class="text-xs text-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                        <li><kbd>1</kbd> <kbd>2</kbd> <kbd>4</kbd> velocidade da partida</li>
+                        <li><kbd>P</kbd> pular para o fim</li>
+                        <li><kbd>R</kbd> <kbd>E</kbd> <kbd>O</kbd> postura: Retranca, Equilibrado, Ofensivo</li>
+                        <li><kbd>M</kbd> som liga/desliga</li>
+                        <li>Ataque: <kbd>1</kbd>…<kbd>5</kbd> cantos, da esquerda para a direita</li>
+                        <li>Defesa: <kbd>Espaço</kbd> ou <kbd>Enter</kbd> na bola</li>
+                        <li>Pênalti: <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> / <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> (ou teclado numérico)</li>
+                        <li>Goleiro no pênalti: <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></li>
+                        <li><kbd>Esc</kbd> fecha janelas · pula o plantão</li>
+                    </ul>
+                </div>
+                <p class="text-[11px] text-slate-500 text-center mt-4">Preferências salvas só neste navegador.</p>
+            </div>
+        </div>
+
+        <!-- MODAL: PROBABILIDADES DO TORNEIO -->
+        <div id="modal-odds" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-4xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-odds" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-violet-300 px-10">Probabilidades do Torneio</h2>
+                <p id="odds-sub" class="text-center text-slate-400 text-xs mb-4"></p>
+                <div id="odds-tabs" role="tablist" class="flex justify-center gap-2 mb-4"></div>
+                <div id="odds-content"></div>
+                <p class="text-[11px] text-slate-500 mt-4 text-center">N simulações do restante com o mesmo motor do botão Simular; sorteios futuros refeitos em cada simulação. Seus jogos ao vivo dependem dos minigames; aqui eles são simulados. Postura: a escolhida para o próximo jogo, depois Equilibrado. Toque num valor para ver a margem de erro.</p>
+            </div>
+        </div>
+
+        <!-- MODAL: GALERIA DE CAMPEÕES -->
+        <div id="modal-hall" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-3xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-amber-500/30 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-hall" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-amber-300 px-10">🏛️ Galeria de Campeões</h2>
+                <p class="text-center text-slate-400 text-xs mb-4">Títulos conquistados nas suas simulações neste navegador, não são títulos reais.</p>
+                <div id="hall-tabs" role="tablist" aria-label="Galeria" class="flex flex-wrap justify-center gap-2 mb-4"></div>
+                <div id="hall-content"></div>
+                <div class="mt-6 flex justify-center">
+                    <button id="btn-hall-clear" class="px-4 py-2 min-h-[44px] rounded-lg bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold border border-red-500/20 text-sm">Apagar galeria</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: TEXTO PARA COPIAR (quando a área de transferência não está disponível) -->
+        <div id="modal-share" class="hidden fixed inset-0 bg-black/95 z-[89] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-share" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-xl font-black mb-2 text-center px-10">Resumo do torneio</h2>
+                <p class="text-center text-slate-400 text-xs mb-3">Toque e segure para copiar.</p>
+                <textarea id="share-text" readonly rows="12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200"></textarea>
+            </div>
+        </div>
+
+        <!-- MODAL: RELATÓRIO DA PARTIDA -->
+        <div id="modal-report" class="hidden fixed inset-0 bg-black/95 z-[88] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-5 md:p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-report" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                <div id="report-content"></div>
+            </div>
+        </div>
+
         <!-- MODAL: CONFIRMAÇÃO GENÉRICA -->
         <div id="modal-confirm" class="hidden fixed inset-0 bg-black/80 z-[95] p-4 flex items-center justify-center backdrop-blur-sm">
             <div class="w-full max-w-md glass rounded-2xl p-6 border border-slate-600 shadow-2xl text-center">
@@ -569,6 +716,8 @@
                 </div>
             </div>
         </div>
+
+        <div id="sr-live" class="sr-only" aria-live="polite"></div>
 
         <div id="toast" role="status" aria-live="polite" class="hidden fixed toast-pos inset-x-0 mx-auto w-fit z-[100] bg-slate-800 border border-slate-600 text-white font-bold px-5 py-3 rounded-xl shadow-2xl text-center max-w-[90vw]"></div>
 

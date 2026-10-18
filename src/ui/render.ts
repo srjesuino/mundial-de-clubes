@@ -32,7 +32,7 @@ export function miniMatchRow(m: PlayableMatch): string {
 }
 
 /** Cartão grande de resultado (modal de resultados e histórico) */
-export function resultCard(m: PlayableMatch, showStage: boolean): string {
+export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): string {
   const t = T();
   const H = team(t, m.home), A = team(t, m.away);
   const hSc = m.played && m.res ? m.res.gH : '-';
@@ -43,7 +43,7 @@ export function resultCard(m: PlayableMatch, showStage: boolean): string {
   const ex = extraText(m);
   return `
     <button ${m.played ? `data-report="${m.id}"` : 'disabled'} class="match-result-card w-full text-left rounded-xl p-3 md:p-4 ${isUserMatch(t, m) ? 'border-emerald-500/50 bg-emerald-900/20' : ''} ${m.played ? 'hover:border-slate-500 transition' : ''}">
-      ${showStage ? `<div class="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center mb-2">${escapeHtml(m.stage)}</div>` : ''}
+      ${showStage || badge ? `<div class="flex items-center justify-center gap-2 mb-2">${showStage ? `<span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center">${escapeHtml(m.stage)}</span>` : ''}${badge}</div>` : ''}
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 md:gap-3 flex-1 justify-end text-right min-w-0">
           <span class="${hw} text-xs md:text-sm truncate">${escapeHtml(H.name)}</span>

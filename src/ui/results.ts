@@ -1,8 +1,11 @@
 // Modal de resultados da rodada, histórico completo e classificação de todos os grupos
-import { isUserMatch } from '../engine/core';
+import { isUser, isUserMatch, team } from '../engine/core';
+import { superPoints } from '../engine/meta';
 import type { PlayableMatch } from '../engine/types';
 import { T } from '../state/store';
-import { $, escapeHtml, hideEl, setHidden, shieldClicks, shielded, showEl, toast } from './dom';
+import { takeAchStrip } from './ach';
+import { $, escapeHtml, fmtBR, hideEl, setHidden, shieldClicks, shielded, showEl, toast } from './dom';
+import { emit } from './hooks';
 import { resultCard } from './render';
 import { renderGroupTable } from './dashboard';
 
@@ -37,11 +40,22 @@ export function showRoundResults(matches: PlayableMatch[], title: string, onAdva
   }
   const t = T();
   const sorted = onAdvance ? [...matches].sort((a, b) => Number(isUserMatch(t, b)) - Number(isUserMatch(t, a))) : matches;
-  renderMatchList(sorted);
+  renderMatchList(sorted, onAdvance ? takeAchStrip() : '');
+  if (onAdvance) emit('roundResults');
 }
 
-export function renderMatchList(matches: PlayableMatch[]): void {
-  $('rr-list').innerHTML = matches.map(m => resultCard(m, true)).join('') || '<p class="text-center text-slate-500">Nenhuma partida.</p>';
+/** Selo "+152" de Superação nos jogos dos clubes do usuário */
+function superBadge(m: PlayableMatch): string {
+  const t = T();
+  if (!m.played) return '';
+  return (['home', 'away'] as const).filter(s => isUser(t, m[s])).map(s => {
+    const pts = superPoints(t, m, m[s]);
+    return pts > 0 ? `<span class="text-[10px] font-black text-amber-300 bg-amber-900/30 border border-amber-500/30 rounded px-1.5" title="Superação de ${escapeHtml(team(t, m[s]).name)}">+${fmtBR(pts)}</span>` : '';
+  }).join('');
+}
+
+export function renderMatchList(matches: PlayableMatch[], top = ''): void {
+  $('rr-list').innerHTML = top + (matches.map(m => resultCard(m, true, superBadge(m))).join('') || '<p class="text-center text-slate-500">Nenhuma partida.</p>');
 }
 
 function historySections(): { key: string; matches: PlayableMatch[] }[] {
