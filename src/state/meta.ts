@@ -1,26 +1,37 @@
 // Dados que sobrevivem aos torneios: Galeria de Campeões e conquistas. Nunca são apagados por "Novo Torneio".
-import { addHofEntry, emptyHof, validHof, type Hof, type HofEntry } from '../engine/meta';
+import { addHofEntry, emptyHof, normalizeHof, type Hof, type HofEntry } from '../engine/meta';
 
 export const META = { hof: 'mundial64-hof-v1', ach: 'mundial64-ach-v1' } as const;
 
 export interface AchStore { v: 1; got: Record<string, { at: number; detail: string }> }
 const emptyAch = (): AchStore => ({ v: 1, got: {} });
-const validAch = (x: unknown): x is AchStore =>
-  !!x && typeof x === 'object' && (x as AchStore).v === 1 && !!(x as AchStore).got && typeof (x as AchStore).got === 'object';
+function parseAch(x: unknown): AchStore | null {
+  if (!x || typeof x !== 'object' || (x as AchStore).v !== 1 || !(x as AchStore).got || typeof (x as AchStore).got !== 'object') return null;
+  const got: AchStore['got'] = {};
+  Object.entries((x as AchStore).got).forEach(([k, v]) => {
+    if (v && typeof v === 'object' && typeof v.at === 'number' && typeof v.detail === 'string') got[k] = { at: v.at, detail: v.detail };
+  });
+  return { v: 1, got };
+}
 
-/** Cópia em memória: com o armazenamento bloqueado, a galeria vale ao menos nesta sessão */
+/**
+ * Cópia em memória: com o armazenamento bloqueado, a galeria vale ao menos nesta sessão.
+ * Enquanto o armazenamento funciona, cada leitura relê o que está salvo (outra aba pode ter gravado).
+ */
 const mem: Partial<Record<string, unknown>> = {};
+const unsaved = new Set<string>();
 let warned = false;
 let onFail: (() => void) | null = null;
 export const onMetaSaveFail = (fn: () => void): void => { onFail = fn; };
 
-function metaLoad<T>(key: string, valid: (x: unknown) => x is T, make: () => T): T {
-  if (mem[key]) return mem[key] as T;
-  let v: T = make();
+function metaLoad<T>(key: string, parse: (x: unknown) => T | null, make: () => T): T {
+  if (unsaved.has(key) && mem[key]) return mem[key] as T; // a última gravação falhou: a memória é a versão mais nova
+  let v: T | null = null;
   try {
     const raw = localStorage.getItem(key);
-    if (raw) { const x: unknown = JSON.parse(raw); if (valid(x)) v = x; }
-  } catch { /* armazenamento indisponível ou corrompido */ }
+    v = raw ? parse(JSON.parse(raw)) : make();
+  } catch { v = null; }
+  if (v === null) v = (mem[key] as T | undefined) ?? make();
   mem[key] = v;
   return v;
 }
@@ -28,15 +39,17 @@ function metaLoad<T>(key: string, valid: (x: unknown) => x is T, make: () => T):
 function metaSave(key: string): boolean {
   try {
     localStorage.setItem(key, JSON.stringify(mem[key]));
+    unsaved.delete(key);
     return true;
   } catch {
+    unsaved.add(key);
     if (!warned) { warned = true; onFail?.(); }
     return false;
   }
 }
 
-export const hof = (): Hof => metaLoad(META.hof, validHof, emptyHof);
-export const achStore = (): AchStore => metaLoad(META.ach, validAch, emptyAch);
+export const hof = (): Hof => metaLoad(META.hof, normalizeHof, emptyHof);
+export const achStore = (): AchStore => metaLoad(META.ach, parseAch, emptyAch);
 
 export function recordHof(e: HofEntry): void {
   addHofEntry(hof(), e);

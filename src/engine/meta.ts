@@ -1,6 +1,6 @@
 // Índice de Superação, colocação final, zebras, resumo para compartilhar e entrada da Galeria de Campeões.
 // Tudo é derivado do estado do torneio e das probabilidades do próprio motor (posturas neutras).
-import { baseOdds, isDecided, team, winnerId } from './core';
+import { baseOdds, isDecided, isUser, team, winnerId } from './core';
 import { describeConfig, qualifiedCount } from './config';
 import { sortGroupIds } from './groups';
 import { DIFF, easiestDiff } from './live';
@@ -31,6 +31,18 @@ export function superPoints(t: Tournament, m: PlayableMatch, id: string): number
 
 export const clubMatches = (t: Tournament, id: string): PlayableMatch[] => playedMatches(t).filter(m => m.home === id || m.away === id);
 
+/** O registro ao vivo é do lado que o usuário controlou (num jogo entre dois clubes seus, só um deles jogou) */
+export function liveFor(t: Tournament, m: PlayableMatch, side: 'home' | 'away'): boolean {
+  const lv = m.res?.live;
+  if (!lv || typeof lv !== 'object') return false;
+  if (lv.s) return lv.s === side;
+  return isUser(t, m[side]) && !isUser(t, m[side === 'home' ? 'away' : 'home']);
+}
+
+/** Jogos do clube jogados ao vivo de verdade: o lado dele, sem "Pular para o Fim" nem "Simular Pênaltis" */
+export const fullyLive = (t: Tournament, m: PlayableMatch, id: string): boolean =>
+  liveFor(t, m, m.home === id ? 'home' : 'away') && m.res!.live!.sk === 0 && !m.res!.live!.sp;
+
 export const superTotal = (t: Tournament, id: string): number => clubMatches(t, id).reduce((s, m) => s + superPoints(t, m, id), 0);
 
 /** "1 em N": a chance de ir tão bem em cada um destes jogos, um a um */
@@ -38,26 +50,59 @@ export const superOneIn = (score: number): number => Math.max(1, Math.round(2 **
 
 export interface Placement { rank: number; label: string }
 
-/** Colocação comparável entre torneios (maior = melhor), funciona em saves antigos */
-export function placementOf(t: Tournament, id: string): Placement {
-  if (t.champion === id) return { rank: 1000, label: 'Campeão' };
-  if (t.runnerUp === id) return { rank: 999, label: 'Vice-campeão' };
+/** Até onde o clube chegou: [etapa, desempate dentro da etapa] (maior = foi mais longe) */
+function progressOf(t: Tournament, id: string, groupPos: (g: string, id: string) => number): [number, number] {
+  if (t.champion === id) return [1e6, 0];
+  if (t.runnerUp === id) return [1e6 - 1, 0];
   if (t.bracket) {
     const ns = t.bracket.nodes.filter(n => n.played && (n.home === id || n.away === id));
-    if (ns.length) {
-      const best = ns.reduce((a, b) => (b.round > a.round ? b : a));
-      return { rank: 500 + best.round, label: best.label };
-    }
+    if (ns.length) return [1000 + Math.max(...ns.map(n => n.round)), 0];
   }
   for (let k = t.knockout.length - 1; k >= 0; k--) {
-    if (t.knockout[k].matches.some(m => m.home === id || m.away === id)) return { rank: 100 + 10 * k, label: t.knockout[k].label };
+    if (t.knockout[k].matches.some(m => m.home === id || m.away === id)) return [1000 + k, 0];
   }
   const x = team(t, id);
-  if (x.group && t.groups[x.group]) {
-    const pos = sortGroupIds(t, x.group).indexOf(id) + 1;
-    return { rank: 50 - pos, label: qualifiedCount(t.config) === 1 ? `${pos}º nos pontos corridos` : `${pos}º do Grupo ${x.group}` };
+  if (x.group && t.groups[x.group]) return [0, -groupPos(x.group, id)];
+  return [0, x.sw * 100 - x.sl];
+}
+
+/**
+ * Colocação comparável entre torneios e formatos: pela posição final (1º = campeão; quem caiu na mesma etapa
+ * divide a posição). rank = 1001 − posição, maior = melhor. Funciona em saves antigos.
+ */
+export function placementOf(t: Tournament, id: string): Placement {
+  const orders: Record<string, string[]> = {};
+  const groupPos = (g: string, x: string) => (orders[g] ??= sortGroupIds(t, g)).indexOf(x) + 1;
+  const ids = Object.keys(t.teams);
+  const prog = Object.fromEntries(ids.map(x => [x, progressOf(t, x, groupPos)])) as Record<string, [number, number]>;
+  const cmp = (a: [number, number], b: [number, number]) => a[0] - b[0] || a[1] - b[1];
+  const mine = prog[id];
+  const place = 1 + ids.filter(x => cmp(prog[x], mine) > 0).length;
+  const ties = ids.filter(x => cmp(prog[x], mine) === 0).length;
+  const pos = ties > 1 ? `${place}º–${place + ties - 1}º` : `${place}º`;
+  const of = ` de ${ids.length}`;
+  let stage: string;
+  if (t.champion === id) stage = 'Campeão';
+  else if (t.runnerUp === id) stage = 'Vice-campeão';
+  else {
+    stage = '';
+    if (t.bracket) {
+      const ns = t.bracket.nodes.filter(n => n.played && (n.home === id || n.away === id));
+      if (ns.length) stage = ns.reduce((a, b) => (b.round > a.round ? b : a)).label;
+    }
+    if (!stage) for (let k = t.knockout.length - 1; k >= 0 && !stage; k--) {
+      if (t.knockout[k].matches.some(m => m.home === id || m.away === id)) stage = t.knockout[k].label;
+    }
+    if (!stage) {
+      const x = team(t, id);
+      if (x.group && t.groups[x.group]) {
+        const gp = groupPos(x.group, id);
+        stage = qualifiedCount(t.config) === 1 ? `${gp}º nos pontos corridos` : `${gp}º do Grupo ${x.group}`;
+      } else stage = `Sistema Suíço (${x.sw}-${x.sl})`;
+    }
   }
-  return { rank: 20 + x.sw, label: `Sistema Suíço (${x.sw}-${x.sl})` };
+  const alive = t.phase !== 'END' && team(t, id).out === null; // ainda no torneio: a posição não está definida
+  return { rank: 1001 - place, label: stage === 'Campeão' || stage === 'Vice-campeão' || alive ? stage : `${stage} (${pos}${of})` };
 }
 
 export interface Upset { m: PlayableMatch; p: number }
@@ -169,7 +214,7 @@ export function hofEntry(t: Tournament, now = Date.now()): HofEntry {
     final: f && f.res ? { stage: f.stage, score: scoreLine(t, f) } : null,
     users: t.userIds.map(id => ({
       ...snap(t, id), ...placementOf(t, id), st: { ...team(t, id).st }, sup: superTotal(t, id),
-      live: clubMatches(t, id).filter(m => m.res?.live).length
+      live: clubMatches(t, id).filter(m => fullyLive(t, m, id)).length
     })),
     skill: t.skill ? JSON.parse(JSON.stringify(t.skill)) : undefined,
     share: buildShareText(t)
@@ -191,12 +236,33 @@ export function addHofEntry(h: Hof, e: HofEntry): Hof {
   return h;
 }
 
-export function validHof(x: unknown): x is Hof {
-  if (!x || typeof x !== 'object') return false;
-  const h = x as Record<string, unknown>;
-  return h.v === 1 && Array.isArray(h.list) && !!h.titles && typeof h.titles === 'object'
-    && h.list.every(e => !!e && typeof e === 'object' && typeof (e as HofEntry).id === 'string' && !!(e as HofEntry).champ && Array.isArray((e as HofEntry).users));
+const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+const isStr = (x: unknown): x is string => typeof x === 'string';
+const isRec = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+const validSnap = (c: unknown): boolean => isRec(c) && isStr(c.id) && isStr(c.name) && isNum(c.ovr);
+const validStats = (s: unknown): boolean => isRec(s) && ['j', 'v', 'e', 'd', 'gp', 'gc'].every(k => isNum(s[k]));
+function validEntry(e: unknown): e is HofEntry {
+  if (!isRec(e) || !isStr(e.id) || !isNum(e.at) || !isStr(e.fmt) || !isNum(e.n) || !isStr(e.share)) return false;
+  if (!isStr(e.diff) || !(e.diff in DIFF) || !validSnap(e.champ) || !(e.vice === null || validSnap(e.vice))) return false;
+  if (!(e.final === null || (isRec(e.final) && isStr(e.final.stage) && isStr(e.final.score)))) return false;
+  return Array.isArray(e.users) && e.users.length > 0 && e.users.every(u => validSnap(u) && isRec(u) && isNum(u.rank) && isStr(u.label)
+    && validStats(u.st) && isNum(u.sup) && isNum(u.live));
 }
+
+/** Lê a galeria guardada descartando só o que estiver malformado (nunca trava a tela da galeria) */
+export function normalizeHof(x: unknown): Hof | null {
+  if (!isRec(x) || x.v !== 1 || !Array.isArray(x.list)) return null;
+  const titles: Hof['titles'] = {};
+  if (isRec(x.titles)) Object.entries(x.titles).forEach(([id, r]) => {
+    if (isRec(r) && isStr(r.name) && isNum(r.t) && isNum(r.f)) titles[id] = { name: r.name, t: r.t, f: r.f };
+  });
+  return { v: 1, list: x.list.filter(validEntry), titles };
+}
+
+export const validHof = (x: unknown): x is Hof => {
+  const h = normalizeHof(x);
+  return !!h && h.list.length === (x as Hof).list.length && Object.keys(h.titles).length === Object.keys((x as Hof).titles ?? {}).length;
+};
 
 // ---------- Aproveitamento nos minigames ----------
 

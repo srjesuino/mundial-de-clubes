@@ -57,14 +57,18 @@ export interface TeamState extends ClubBase {
   out: string | null;
 }
 
-/** Resumo de uma partida jogada ao vivo pelo usuário (até o fim, nos minigames) */
+/** Resumo de uma partida que o usuário jogou ao vivo até o apito final (interrompida não tem) */
 export interface LiveRecord {
+  /** lado que o usuário controlou */
+  s?: Side;
   /** dificuldade usada */
   d: Difficulty;
   /** maior desvantagem do usuário no placar durante o jogo */
   md: number;
   /** 1 se usou "Pular para o Fim" */
   sk: 0 | 1;
+  /** 1 se usou "Simular Pênaltis" (cobranças simuladas não contam para conquistas de habilidade) */
+  sp?: 0 | 1;
   /** pênaltis batidos pelo usuário nos minigames: [cobranças, gols] */
   ps: [number, number];
   /** pênaltis do adversário com o usuário no gol: [cobranças, defesas/erros] */

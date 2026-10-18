@@ -52,6 +52,7 @@ interface LiveState {
   mg: { att: number; attG: number; def: number; defG: number; penS: number; penSG: number; penD: number; penDS: number };
   maxDef: number;
   skipped: boolean;
+  pensSimulated: boolean;
   trailed: { home: boolean; away: boolean };
   swings: { min: number; before: number; after: number }[];
   said80: boolean;
@@ -266,7 +267,7 @@ export function startLive(m: PlayableMatch, side: Side): void {
     pen: null, timer: undefined, token: {}, htPending: false, chance: null, kick: null,
     wp: [], penWp: [], misses: [], ch: { h: 0, a: 0 }, goals: [],
     mg: { att: 0, attG: 0, def: 0, defG: 0, penS: 0, penSG: 0, penD: 0, penDS: 0 },
-    maxDef: 0, skipped: false, trailed: { home: false, away: false }, swings: [], said80: false, upsetBy: null
+    maxDef: 0, skipped: false, pensSimulated: false, trailed: { home: false, away: false }, swings: [], said80: false, upsetBy: null
   };
   liveSpeed = prefs.speed;
   const level = t.config.difficulty ?? 'normal';
@@ -547,7 +548,7 @@ function finishLive(): void {
   mgAbort();
   const m = L.m;
   const live: LiveRecord = {
-    d: t.config.difficulty ?? 'normal', md: L.maxDef, sk: L.skipped ? 1 : 0,
+    s: L.side, d: t.config.difficulty ?? 'normal', md: L.maxDef, sk: L.skipped ? 1 : 0, sp: L.pensSimulated ? 1 : 0,
     ps: [L.mg.penS, L.mg.penSG], pd: [L.mg.penD, L.mg.penDS], at: [L.mg.att, L.mg.attG], df: [L.mg.def, L.mg.defG]
   };
   const res: MatchResult = { gH: L.hSc, gA: L.aSc, et: L.et, penH: L.pen ? L.pen.h : null, penA: L.pen ? L.pen.a : null, gm: L.goals.slice(), live };
@@ -680,6 +681,7 @@ function simulateRemainingPens(): void {
   const P = L.pen;
   if (!shootoutOver(P)) {
     const t = T();
+    L.pensSimulated = true;
     const before = { h: P.kicks.home.length, a: P.kicks.away.length };
     simulateShootout(L.ctx.homeOvr, L.ctx.awayOvr, P);
     const fmt = (arr: boolean[]) => arr.map(g => (g ? '✓' : '✗')).join(' ') || '—';

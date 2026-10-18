@@ -175,7 +175,14 @@ function renderHall(): void {
 
 export function openHall(start: HallTab = 'champs'): void {
   tab = start;
-  renderHall();
+  try {
+    renderHall();
+  } catch (e) {
+    // dado estranho guardado: a janela abre mesmo assim, com o botão de apagar disponível
+    console.error(e);
+    $('hall-content').innerHTML = '<p class="text-center text-red-300 py-6">Não foi possível ler a galeria guardada neste navegador.</p>';
+    showEl('btn-hall-clear');
+  }
   showEl('modal-hall');
   $('modal-hall').scrollTop = 0;
 }

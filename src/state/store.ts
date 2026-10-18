@@ -59,9 +59,41 @@ const validLogEntry = (e: unknown): boolean =>
 const validSkill = (s: unknown): boolean =>
   isObj(s) && (['att', 'def', 'penS', 'penD'] as const).every(k => isObj(s[k]) && isNum((s[k] as Record<string, unknown>).n) && isNum((s[k] as Record<string, unknown>).g));
 
-/** Campos opcionais (previsão, recordes) malformados são descartados em vez de invalidar o torneio */
+const SIDES = ['home', 'away'];
+const TACS = ['def', 'bal', 'att'];
+const DIFFS = ['facil', 'normal', 'dificil', 'lenda'];
+const isPair = (x: unknown): boolean => isNumArr(x) && (x as number[]).length === 2;
+
+function validLiveRecord(lv: unknown): boolean {
+  if (!isObj(lv)) return false;
+  if (lv.s !== undefined && !SIDES.includes(lv.s as string)) return false;
+  if (!DIFFS.includes(lv.d as string) || !isNum(lv.md) || (lv.sk !== 0 && lv.sk !== 1)) return false;
+  if (lv.sp !== undefined && lv.sp !== 0 && lv.sp !== 1) return false;
+  if (!isPair(lv.ps) || !isPair(lv.pd)) return false;
+  return (lv.at === undefined || isPair(lv.at)) && (lv.df === undefined || isPair(lv.df));
+}
+
+/**
+ * Campos extras de cada jogo (minutos dos gols, pênaltis, registro ao vivo, postura) que não estiverem no formato
+ * atual são removidos: o placar continua valendo. Ex.: versões anteriores gravavam "live: true".
+ */
+function sanitizeMatch(m: unknown): void {
+  if (!isObj(m)) return;
+  if (m.tactics !== undefined && !(isObj(m.tactics) && Object.entries(m.tactics).every(([k, v]) => SIDES.includes(k) && TACS.includes(v as string)))) delete m.tactics;
+  const r = m.res;
+  if (!isObj(r)) return;
+  if (r.live !== undefined && !validLiveRecord(r.live)) delete r.live;
+  if (r.gm !== undefined && !(Array.isArray(r.gm) && r.gm.every(g => isPair(g) && ((g as number[])[1] === 0 || (g as number[])[1] === 1)))) delete r.gm;
+  if (r.pk !== undefined && !(isObj(r.pk) && SIDES.includes(r.pk.f as string) && isNumArr(r.pk.h) && isNumArr(r.pk.a))) delete r.pk;
+}
+
+/** Campos opcionais (previsão, recordes, extras dos jogos) malformados são descartados em vez de invalidar o torneio */
 export function sanitize(s: Tournament): Tournament {
   const o = s as unknown as Record<string, unknown>;
+  Object.values(s.schedule).forEach(rs => Array.isArray(rs) && rs.forEach(r => Array.isArray(r) && r.forEach(sanitizeMatch)));
+  s.swissRounds.forEach(r => Array.isArray(r) && r.forEach(sanitizeMatch));
+  s.knockout.forEach(k => isObj(k) && Array.isArray(k.matches) && k.matches.forEach(sanitizeMatch));
+  if (isObj(s.bracket) && Array.isArray(s.bracket.nodes)) s.bracket.nodes.forEach(sanitizeMatch);
   if (o.mc !== undefined && !validForecast(o.mc)) delete o.mc;
   if (o.mcLog !== undefined) {
     if (!Array.isArray(o.mcLog)) delete o.mcLog;

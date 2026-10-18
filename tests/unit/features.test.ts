@@ -249,3 +249,89 @@ describe('correções da previsão (revisão)', () => {
     expect(sanitize(good).mc).toBeDefined();
   });
 });
+
+describe('correções da galeria, conquistas e saves (revisão)', () => {
+  const live = (over: Record<string, unknown> = {}) => ({ s: 'home', d: 'normal', md: 0, sk: 0, ps: [0, 0], pd: [0, 0], ...over }) as never;
+
+  it('save de versão anterior com "live: true" vira jogo simulado em vez de travar a rodada', async () => {
+    const { sanitize } = await import('../../src/state/store');
+    setSeed(14);
+    const t = createTournament(cfg({}), someUsers(1));
+    simulateRound(t);
+    const old = JSON.parse(JSON.stringify(t));
+    const m = old.schedule.A[0][0];
+    m.res.live = true;
+    m.res.gm = 'x';
+    m.tactics = { home: 'turbo' };
+    sanitize(old);
+    expect(m.res.live).toBeUndefined();
+    expect(m.res.gm).toBeUndefined();
+    expect(m.tactics).toBeUndefined();
+    expect(() => matchAchievements(old, m)).not.toThrow();
+  });
+
+  it('Virada vai só para o clube que o usuário controlou num jogo entre dois clubes seus', () => {
+    setSeed(6);
+    const t = createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(8));
+    finalizeDraw(t);
+    const m = currentRoundMatches(t)[0];
+    applyResult(t, m, { gH: 0, gA: 3, et: false, penH: null, penA: null, live: live({ s: 'home', md: 3 }) });
+    // o usuário controlou o mandante, que perdeu: a vitória do visitante (máquina) não é "Virada"
+    expect(matchAchievements(t, m).map(u => u.k)).not.toContain('comeback');
+  });
+
+  it('Mão na massa e Lenda exigem jogos ao vivo sem pular; Sangue frio não vale com cobranças simuladas', () => {
+    setSeed(9);
+    const t = createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8, difficulty: 'lenda' }), someUsers(1));
+    const me = t.userIds[0];
+    t.diffUsed = ['lenda'];
+    let guard = 0;
+    while (t.phase !== 'END' && guard++ < 50) {
+      if (t.draw) { finalizeDraw(t); continue; }
+      currentRoundMatches(t).forEach(m => {
+        if (m.played) return;
+        const side = m.home === me ? 'home' : m.away === me ? 'away' : null;
+        if (!side) { applyResult(t, m, { gH: 1, gA: 0, et: false, penH: null, penA: null }); return; }
+        applyResult(t, m, { gH: side === 'home' ? 2 : 0, gA: side === 'home' ? 0 : 2, et: false, penH: null, penA: null, live: live({ s: side, sk: 1 }) });
+      });
+      advance(t);
+    }
+    expect(t.champion).toBe(me);
+    const ks = endAchievements(t).map(u => u.k);
+    expect(ks).toContain('champ');
+    expect(ks).not.toContain('all_live');
+    expect(ks).not.toContain('legend');
+    const pk = createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1));
+    finalizeDraw(pk);
+    const m = currentRoundMatches(pk).find(x => x.home === pk.userIds[0] || x.away === pk.userIds[0])!;
+    const side = m.home === pk.userIds[0] ? 'home' : 'away';
+    applyResult(pk, m, { gH: 1, gA: 1, et: true, penH: side === 'home' ? 5 : 6, penA: side === 'home' ? 6 : 5, live: live({ s: side, ps: [5, 5], sp: 1 }) });
+    expect(matchAchievements(pk, m).map(u => u.k)).not.toContain('ice');
+  });
+
+  it('colocação comparável entre formatos: pela posição final', () => {
+    setSeed(3);
+    const a = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 64 }), someUsers(1)));
+    const b = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8, bracketFormat: 'double' }), someUsers(1)));
+    const sfLoser = a.knockout.find(k => k.phase === 'SF')!.matches.map(m => (m.res!.gH !== m.res!.gA ? (m.res!.gH > m.res!.gA ? m.away : m.home) : (m.res!.penH! > m.res!.penA! ? m.away : m.home)))[0];
+    expect(placementOf(a, sfLoser).rank).toBe(998);
+    expect(placementOf(a, sfLoser).label).toContain('3º–4º de 64');
+    // ninguém fora da final passa do vice; quem caiu cedo na dupla eliminação fica abaixo de um semifinalista
+    Object.keys(b.teams).filter(id => id !== b.champion && id !== b.runnerUp).forEach(id => {
+      expect(placementOf(b, id).rank).toBeLessThan(999);
+    });
+    const ranks = Object.keys(b.teams).map(id => placementOf(b, id).rank).sort((x, y) => y - x);
+    expect(ranks[0]).toBe(1000);
+    expect(ranks[ranks.length - 1]).toBeGreaterThanOrEqual(1001 - 8);
+  });
+
+  it('galeria guardada com entrada quebrada: descarta só a entrada', async () => {
+    const { normalizeHof } = await import('../../src/engine/meta');
+    setSeed(4);
+    const t = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1)));
+    const good = hofEntry(t, 1);
+    const h = normalizeHof({ v: 1, list: [good, { ...good, id: 'H2', users: [{ id: 'x' }] }], titles: { a: null, b: { name: 'B', t: 1, f: 1 } } })!;
+    expect(h.list).toHaveLength(1);
+    expect(Object.keys(h.titles)).toEqual(['b']);
+  });
+});
