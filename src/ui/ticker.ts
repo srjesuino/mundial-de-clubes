@@ -165,7 +165,7 @@ function frame(now: number): void {
   const t = T();
   const dt = Math.min(100, now - R.last);
   R.last = now;
-  const total = R.rows.some(r => r.m.res?.et && !r.static) ? 120 : 90;
+  const total = R.rows.some(r => r.el && r.m.res?.et && !r.static) ? 120 : 90;
   if (R.virt < total) {
     const prevMinute = Math.floor(R.virt);
     R.virt = Math.min(total, R.virt + (dt / 1000) * (R.fast ? 26 : 13));
@@ -188,12 +188,12 @@ function frame(now: number): void {
       });
       if (anyGoal) renderTables(t, R.rows, false);
     }
-  } else if (R.rows.some(r => r.pk && r.ph < r.pk.h.length + r.pk.a.length)) {
+  } else if (R.rows.some(r => r.el && r.pk && r.ph < r.pk.h.length + r.pk.a.length)) {
     // pênaltis: uma cobrança a cada 250 ms (alternadas a partir de quem começou)
     if (R.pkStart === null) { R.pkStart = now; $('tk-clock').textContent = 'PÊN'; }
     const due = Math.floor((now - R.pkStart) / (R.fast ? 125 : 250));
     R.rows.forEach(r => {
-      if (!r.pk) return;
+      if (!r.pk || !r.el) return;
       const n = Math.min(due, r.pk.h.length + r.pk.a.length);
       if (n === r.ph) return;
       r.ph = n;
@@ -235,24 +235,23 @@ export function playRoundTicker(ms: PlayableMatch[], title: string, onDone: () =
   const t = T();
   const userGroups = new Set(t.userIds.map(id => team(t, id).group).filter(Boolean));
   const rank = (m: PlayableMatch) => (isUserMatch(t, m) ? 0 : m.kind === 'group' && userGroups.has(team(t, m.home).group) ? 1 : 2);
-  let list = ms.filter(m => m.played && m.res).slice().sort((a, b) => rank(a) - rank(b));
-  if (list.length > 40) list = list.filter(m => rank(m) < 2);
-  const shownList = list.slice(0, MAX_ROWS());
-  const hidden = ms.length - shownList.length;
-  const rows: Row[] = shownList.map(m => {
+  // Todos os jogos entram na conta (classificação parcial); só os primeiros aparecem na lista
+  const all = ms.filter(m => m.played && m.res).slice().sort((a, b) => rank(a) - rank(b));
+  const visible = (all.length > 40 ? all.filter(m => rank(m) < 2) : all).slice(0, MAX_ROWS());
+  const hidden = ms.length - visible.length;
+  const rows: Row[] = all.map(m => {
     const res = m.res!;
     return {
       m, goals: res.gm ? [...res.gm].sort((a, b) => a[0] - b[0]) : [], pk: res.pk ?? null, hl: rank(m) < 2,
       static: !res.gm, shown: 0, h: 0, a: 0, ph: 0, lab: '', el: null
     };
   });
+  const shownRows = visible.map(m => rows.find(r => r.m === m)!);
   $('tk-title').textContent = title;
   $('tk-clock').textContent = "0'";
-  $('tk-list').innerHTML = rows.map(r => rowHtml(r, t)).join('');
-  rows.forEach(r => {
-    r.el = $('tk-list').querySelector<HTMLElement>(`[data-mid="${r.m.id}"]`);
-    if (r.static) { r.h = r.m.res!.gH; r.a = r.m.res!.gA; setScore(r, 'encerrado'); }
-  });
+  $('tk-list').innerHTML = shownRows.map(r => rowHtml(r, t)).join('');
+  shownRows.forEach(r => { r.el = $('tk-list').querySelector<HTMLElement>(`[data-mid="${r.m.id}"]`); });
+  rows.forEach(r => { if (r.static) { r.h = r.m.res!.gH; r.a = r.m.res!.gA; setScore(r, 'encerrado'); } });
   const more = $('tk-more');
   more.textContent = hidden > 0 ? `+${hidden} jogos (todos aparecem nos resultados)` : '';
   more.classList.toggle('hidden', hidden <= 0);
