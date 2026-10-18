@@ -47,7 +47,10 @@ Estrutura:
 
 ## Publicação
 
-O workflow `.github/workflows/deploy.yml` roda tipos, testes, build e testes de ponta a ponta a cada push na `main` e publica no GitHub Pages (o build final usa `BASE=/<repositório>/`). Para ativar, vá em **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+O site é servido pelo GitHub Pages a partir do branch **`gh-pages`** (Settings → Pages → *Deploy from a branch* → `gh-pages` / root), em https://srjesuino.github.io/mundial-de-clubes/.
+
+- A cada push na `main`, o workflow `.github/workflows/deploy.yml` roda tipos, testes, build e testes de ponta a ponta e atualiza o `gh-pages`.
+- Sem o Actions disponível, `npm run publish:pages` faz o mesmo à mão: testes do motor, build com o caminho do repositório (`BASE=/<repositório>/`) e envio para o `gh-pages`.
 
 Versões novas nunca recarregam a página no meio de uma partida: aparece o botão ⟳ no topo, e a troca só acontece sozinha quando não há nada em andamento.
 

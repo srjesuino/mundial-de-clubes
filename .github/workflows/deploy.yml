@@ -7,9 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -47,18 +45,15 @@ jobs:
         run: npm run build
         env:
           BASE: /${{ github.event.repository.name }}/
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
-        with:
-          path: dist
-
-  deploy:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-24.04
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      # Publica no branch gh-pages (Pages: "Deploy from a branch" → gh-pages / root), o mesmo que
+      # `npm run publish:pages` faz à mão quando o Actions não está disponível
+      - name: Publicar no gh-pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          touch dist/.nojekyll
+          cd dist
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Publica o Mundial de Clubes 64 (${GITHUB_SHA::7})"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages:gh-pages
