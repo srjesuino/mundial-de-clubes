@@ -85,7 +85,7 @@ export function openStats(): void {
   box.innerHTML = `
     ${sk ? `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3 mb-4 text-xs text-slate-300 flex flex-col gap-1"><h4 class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Você x o motor</h4>${sk}</div>` : ''}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-      ${tile('Jogos', n)}${tile('Gols', s.goals)}${tile('Média de gols', (s.goals / n).toFixed(2))}${tile('Decisões por pênaltis', s.pens)}
+      ${tile('Jogos', n)}${tile('Gols', s.goals)}${tile('Média de gols', fmtBR(s.goals / n, 2))}${tile('Decisões por pênaltis', s.pens)}
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
       <div><p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Maior goleada · ${escapeHtml(s.biggest!.stage)}</p>${miniMatchRow(s.biggest!)}</div>
@@ -93,7 +93,7 @@ export function openStats(): void {
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       ${list('Melhores ataques (gols)', s.attack, x => x.st.gp)}
-      ${list('Melhores defesas (gols sofridos/jogo)', s.defense, x => (x.st.gc / x.st.j).toFixed(2))}
+      ${list('Melhores defesas (gols sofridos/jogo)', s.defense, x => fmtBR(x.st.gc / x.st.j, 2))}
       ${list('Mais vitórias', s.wins, x => x.st.v)}
     </div>
     <p class="text-xs text-slate-500 text-center mb-2">Vitórias do mandante/1º listado: ${pct(s.homeWins / n)} · empates no tempo normal/prorrogação: ${pct(s.draws / n)} · prorrogações: ${s.extraTimes}</p>

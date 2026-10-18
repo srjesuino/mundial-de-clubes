@@ -69,16 +69,25 @@ export function askConfirm(title: string, text: string, onYes: () => void, yesLa
 // Entre falas, 1,2 s; das mensagens comuns que chegam nesse intervalo, só a mais nova é dita. As urgentes nunca se perdem.
 let srBusyUntil = 0;
 let srTimer: number | undefined;
-let srQueue: { text: string; urgent: boolean }[] = [];
+let srQueue: { text: string; urgent: boolean; tick: number }[] = [];
 let srEnabled = (): boolean => true;
 export const setSrEnabled = (fn: () => boolean): void => { srEnabled = fn; };
+// "Instante": tudo o que roda na mesma tarefa (ex.: os gols de um "Pular para o Fim", o gol e o aviso de zebra)
+let srTick = 0;
+let srTickOpen = false;
+function currentTick(): number {
+  if (!srTickOpen) { srTickOpen = true; queueMicrotask(() => { srTick++; srTickOpen = false; }); }
+  return srTick;
+}
 
 function srFlush(): void {
   srTimer = undefined;
   const el = document.getElementById('sr-live');
   if (!el || !srQueue.length) return;
-  const lastNormal = [...srQueue].reverse().find(m => !m.urgent);
-  const parts = srQueue.filter(m => m.urgent || m === lastNormal).map(m => m.text);
+  // urgentes sempre; das comuns, todas as do instante mais recente (as anteriores, ditas durante a pausa, saem)
+  const normals = srQueue.filter(m => !m.urgent);
+  const lastTick = normals.length ? normals[normals.length - 1].tick : -1;
+  const parts = srQueue.filter(m => m.urgent || m.tick === lastTick).map(m => m.text);
   srQueue = [];
   el.textContent = '';
   // trocar o texto depois de limpar faz o leitor repetir frases iguais
@@ -88,7 +97,7 @@ function srFlush(): void {
 
 export function srSay(text: string, urgent = false): void {
   if (!srEnabled()) return;
-  srQueue.push({ text, urgent });
+  srQueue.push({ text, urgent, tick: currentTick() });
   if (srTimer !== undefined) {
     if (!urgent) return;
     clearTimeout(srTimer); // urgente: sai já, junto com o que chegou no mesmo instante

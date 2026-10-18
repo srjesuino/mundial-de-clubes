@@ -71,7 +71,7 @@ export interface LiveRecord {
   sp?: 0 | 1;
   /** pênaltis batidos pelo usuário nos minigames: [cobranças, gols] */
   ps: [number, number];
-  /** pênaltis do adversário com o usuário no gol: [cobranças, defesas/erros] */
+  /** pênaltis do adversário com o usuário no gol: [cobranças, defesas] (chutes para fora não contam) */
   pd: [number, number];
   /** chances de ataque nos minigames: [tentativas, gols] */
   at?: [number, number];
@@ -103,6 +103,8 @@ export interface Match {
   res: MatchResult | null;
   /** posturas escolhidas pelos clubes do usuário neste jogo (NPCs sempre Equilibrado) */
   tactics?: Partial<Record<Side, Tactic>>;
+  /** posturas no pontapé inicial de um jogo ao vivo (a postura pode mudar durante o jogo) */
+  tac0?: Partial<Record<Side, Tactic>>;
   /** conquistas já verificadas para este jogo */
   achk?: 1;
 }
@@ -124,6 +126,7 @@ export interface DENode {
   isGF1?: boolean;
   isGF2?: boolean;
   tactics?: Partial<Record<Side, Tactic>>;
+  tac0?: Partial<Record<Side, Tactic>>;
   achk?: 1;
 }
 

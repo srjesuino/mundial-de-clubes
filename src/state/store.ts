@@ -79,7 +79,9 @@ function validLiveRecord(lv: unknown): boolean {
  */
 function sanitizeMatch(m: unknown): void {
   if (!isObj(m)) return;
-  if (m.tactics !== undefined && !(isObj(m.tactics) && Object.entries(m.tactics).every(([k, v]) => SIDES.includes(k) && TACS.includes(v as string)))) delete m.tactics;
+  const validTac = (x: unknown) => isObj(x) && Object.entries(x).every(([k, v]) => SIDES.includes(k) && TACS.includes(v as string));
+  if (m.tactics !== undefined && !validTac(m.tactics)) delete m.tactics;
+  if (m.tac0 !== undefined && !validTac(m.tac0)) delete m.tac0;
   const r = m.res;
   if (!isObj(r)) return;
   if (r.live !== undefined && !validLiveRecord(r.live)) delete r.live;

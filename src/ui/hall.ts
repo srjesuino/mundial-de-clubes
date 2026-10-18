@@ -39,6 +39,7 @@ export function copyText(txt: string): void {
       ta.select();
       ok = document.execCommand('copy');
       ta.remove();
+      (opener as HTMLElement | null)?.focus?.({ preventScroll: true }); // a janela de cópia lembra quem a abriu
     } catch { ok = false; }
     if (ok) { (opener as HTMLElement | null)?.focus?.({ preventScroll: true }); toast('Resumo copiado!'); return; }
     const box = $<HTMLTextAreaElement>('share-text');
@@ -57,13 +58,15 @@ export function copyText(txt: string): void {
 export const copyShare = (): void => { if (store.t) copyText(buildShareText(store.t)); };
 
 // ---------- Painel e campeão ----------
+/** "1 em 1,5", "1 em 17", "1 em 1.240" */
+const oneIn = (score: number): string => { const n = superOneIn(score); return fmtBR(n, n < 10 && n > 1.05 ? 1 : 0); };
 function renderDashSuper(): void {
   const t = store.t;
   const el = $('dash-super');
   if (!t) { setHidden(el, true); return; }
   const s = superTotal(t, t.activeId);
   if (!team(t, t.activeId).st.j) { setHidden(el, true); return; }
-  el.textContent = `Superação ${fmtBR(s)} · 1 em ${fmtBR(superOneIn(s))}`;
+  el.textContent = `Superação ${fmtBR(s)} · 1 em ${oneIn(s)}`;
   showEl(el);
 }
 
@@ -128,7 +131,7 @@ function recordsTab(list: HofEntry[]): string {
   const rows = all.length ? all.map((u, i) => `<div class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 min-w-0">
     <span class="w-5 text-slate-500 text-xs tabular-nums">${i + 1}</span>${logoImg(baseOf(u), 'w-6 h-6 object-contain shrink-0')}
     <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(u.name)} <span class="text-[10px] text-slate-500">OVR ${u.ovr}</span></p><p class="text-[11px] text-slate-400 truncate">${escapeHtml(u.label)} · ${dateBR(u.at)} · ${DIFF[u.diff]?.label ?? ''}</p></div>
-    <div class="text-right shrink-0"><p class="font-black text-amber-300 tabular-nums">${fmtBR(u.sup)}</p><p class="text-[10px] text-slate-500 tabular-nums">1 em ${fmtBR(superOneIn(u.sup))}</p></div></div>`).join('')
+    <div class="text-right shrink-0"><p class="font-black text-amber-300 tabular-nums">${fmtBR(u.sup)}</p><p class="text-[10px] text-slate-500 tabular-nums">1 em ${oneIn(u.sup)}</p></div></div>`).join('')
     : '<p class="text-center text-slate-400 py-6">Sem recordes neste filtro.</p>';
   return `<p class="text-[11px] text-slate-500 text-center mb-2">Superação: pelos OVRs do simulador, a chance de ir tão bem em cada um dos jogos, um a um (posturas não contam).</p>
     <div class="flex flex-wrap justify-center gap-2 mb-3">${chips}</div><div class="flex flex-col gap-2">${rows}</div>`;

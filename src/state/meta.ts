@@ -15,50 +15,66 @@ function parseAch(x: unknown): AchStore | null {
 }
 
 /**
- * Cópia em memória: com o armazenamento bloqueado, a galeria vale ao menos nesta sessão.
- * Enquanto o armazenamento funciona, cada leitura relê o que está salvo (outra aba pode ter gravado).
+ * Cada leitura relê o que está salvo (outra aba pode ter gravado) e junta o que esta aba ainda não conseguiu gravar.
+ * Com o armazenamento bloqueado, a cópia em memória vale ao menos nesta sessão.
  */
-const mem: Partial<Record<string, unknown>> = {};
-const unsaved = new Set<string>();
+let memHof: Hof | null = null;
+let memAch: AchStore | null = null;
+const pendingHof: HofEntry[] = [];
+const pendingAch: AchStore['got'] = {};
+let hofCleared = false;
 let warned = false;
 let onFail: (() => void) | null = null;
 export const onMetaSaveFail = (fn: () => void): void => { onFail = fn; };
 
-function metaLoad<T>(key: string, parse: (x: unknown) => T | null, make: () => T): T {
-  if (unsaved.has(key) && mem[key]) return mem[key] as T; // a última gravação falhou: a memória é a versão mais nova
-  let v: T | null = null;
+/** undefined = armazenamento indisponível; null = vazio ou ilegível */
+function read<T>(key: string, parse: (x: unknown) => T | null): T | null | undefined {
   try {
     const raw = localStorage.getItem(key);
-    v = raw ? parse(JSON.parse(raw)) : make();
-  } catch { v = null; }
-  if (v === null) v = (mem[key] as T | undefined) ?? make();
-  mem[key] = v;
-  return v;
+    if (!raw) return null;
+    try { return parse(JSON.parse(raw)); } catch { return null; }
+  } catch { return undefined; }
 }
 
-function metaSave(key: string): boolean {
+function write(key: string, value: unknown): boolean {
   try {
-    localStorage.setItem(key, JSON.stringify(mem[key]));
-    unsaved.delete(key);
+    localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch {
-    unsaved.add(key);
     if (!warned) { warned = true; onFail?.(); }
     return false;
   }
 }
 
-export const hof = (): Hof => metaLoad(META.hof, normalizeHof, emptyHof);
-export const achStore = (): AchStore => metaLoad(META.ach, parseAch, emptyAch);
+export function hof(): Hof {
+  const stored = read(META.hof, normalizeHof);
+  if (stored === undefined) return (memHof ??= emptyHof());
+  const h = hofCleared || !stored ? emptyHof() : stored;
+  pendingHof.forEach(e => { if (!h.list.some(x => x.id === e.id)) addHofEntry(h, e); });
+  return (memHof = h);
+}
+
+export function achStore(): AchStore {
+  const stored = read(META.ach, parseAch);
+  if (stored === undefined) return (memAch ??= emptyAch());
+  const s = stored ?? emptyAch();
+  Object.entries(pendingAch).forEach(([k, v]) => { if (!s.got[k]) s.got[k] = v; });
+  return (memAch = s);
+}
 
 export function recordHof(e: HofEntry): void {
-  addHofEntry(hof(), e);
-  metaSave(META.hof);
+  const h = hof();
+  if (h.list.some(x => x.id === e.id)) return;
+  addHofEntry(h, e);
+  pendingHof.push(e);
+  if (write(META.hof, h)) { pendingHof.length = 0; hofCleared = false; }
 }
 
 export function clearHof(): void {
-  mem[META.hof] = emptyHof();
-  metaSave(META.hof);
+  pendingHof.length = 0;
+  hofCleared = true;
+  memHof = emptyHof();
+  if (write(META.hof, memHof)) hofCleared = false;
 }
 
 /** Desbloqueia uma conquista (idempotente). Devolve true se ela é nova. */
@@ -66,6 +82,7 @@ export function unlockAch(k: string, detail: string): boolean {
   const s = achStore();
   if (s.got[k]) return false;
   s.got[k] = { at: Date.now(), detail };
-  metaSave(META.ach);
+  pendingAch[k] = s.got[k];
+  if (write(META.ach, s)) Object.keys(pendingAch).forEach(x => delete pendingAch[x]);
   return true;
 }

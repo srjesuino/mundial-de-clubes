@@ -71,7 +71,7 @@ export function skillHtml(): string {
   if (s.penS.n + s.penD.n >= 1) {
     const pen: string[] = [];
     if (s.penS.n) pen.push(`converteu ${s.penS.g}/${s.penS.n} (o motor esperava ${fmtBR(s.penS.e, 1)})${small(s.penS.n)}`);
-    if (s.penD.n) pen.push(`defendeu ${s.penD.n - s.penD.g}/${s.penD.n} (o motor esperava ${fmtBR(s.penD.n - s.penD.e, 1)})${small(s.penD.n)}`);
+    if (s.penD.n) pen.push(`no gol, não entraram ${s.penD.n - s.penD.g}/${s.penD.n} (o motor esperava ${fmtBR(s.penD.n - s.penD.e, 1)})${small(s.penD.n)}`);
     parts.push('Pênaltis: ' + pen.join(' · '));
   }
   return parts.map(p => `<p>${escapeHtml(p)}</p>`).join('');

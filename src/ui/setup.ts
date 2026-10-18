@@ -268,7 +268,7 @@ export function initSetupScreens(): void {
     $('screen-select').classList.add('flex', 'flex-1');
     enterSelectScreen();
     window.scrollTo(0, 0);
-    $('search-team').focus({ preventScroll: true });
+    $('select-title').focus({ preventScroll: true });
   };
 
   $('btn-back-config').onclick = showConfigScreen;

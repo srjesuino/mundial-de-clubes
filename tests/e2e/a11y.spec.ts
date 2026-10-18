@@ -153,3 +153,45 @@ test('depois de um lance, o foco volta ao cartão da partida (Enter não pula o 
   expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('btn-skip-match');
   expect(errors).toEqual([]);
 });
+
+test('segundo sorteio da sessão: o foco cai em "Sortear Confronto"', async ({ page }) => {
+  const errors = trackErrors(page);
+  await toKo(page);
+  await tap(page, '#btn-simulate-match', 450);
+  if (await page.locator('#round-ticker').isVisible()) await tap(page, '#tk-skip', 100);
+  await expect(page.locator('#btn-advance-round')).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(600);
+  await tap(page, '#btn-advance-round', 700);
+  await page.focus('#btn-draw');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#screen-draw')).toBeVisible();
+  await page.waitForTimeout(300);
+  await expect(page.locator('#btn-draw-next')).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test('narração: "Pular para o Fim" anuncia todos os gols e o placar final', async ({ page }) => {
+  const errors = trackErrors(page);
+  await toKo(page);
+  await page.evaluate(() => {
+    (window as any).__said = [];
+    new MutationObserver(() => { const t = document.getElementById('sr-live')!.textContent; if (t) (window as any).__said.push(t); })
+      .observe(document.getElementById('sr-live')!, { childList: true, characterData: true, subtree: true });
+  });
+  await page.click('#btn-play-match');
+  await page.waitForTimeout(900);
+  await page.waitForFunction(() => document.getElementById('minigame-overlay')!.classList.contains('hidden'));
+  await page.keyboard.press('p');
+  await page.waitForTimeout(400);
+  // se houve pênaltis, simula o resto
+  if (await page.locator('#btn-sim-pens').isVisible()) { await page.waitForTimeout(800); await page.click('#btn-sim-pens'); }
+  await expect(page.locator('#btn-finish-match')).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(500);
+  const { said, goals } = await page.evaluate(() => ({
+    said: (window as any).__said.join(' || ') as string,
+    goals: Array.from(document.querySelectorAll('#match-events span')).map(s => s.textContent || '').filter(x => x.startsWith('GOL!'))
+  }));
+  for (const g of goals) expect(said).toContain(g);
+  expect(said).toMatch(/Fim/);
+  expect(errors).toEqual([]);
+});

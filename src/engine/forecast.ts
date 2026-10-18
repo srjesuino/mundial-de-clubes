@@ -1,6 +1,6 @@
 // Previsão do torneio por Monte Carlo: o resto do torneio é jogado N vezes com o mesmo motor do botão Simular.
 // Nada aqui altera o torneio de verdade: cada simulação roda numa cópia.
-import { PHASE_BY_COUNT, PHASE_LABEL, isUser, team, winnerId } from './core';
+import { PHASE_BY_COUNT, PHASE_LABEL, effectiveTactics, isUser, team, winnerId } from './core';
 import { qualifiedCount } from './config';
 import { sortGroupIds } from './groups';
 import { clamp } from './math';
@@ -44,8 +44,11 @@ export const resultsKey = (t: Tournament): string => String(playedMatches(t).len
 
 /** Chave da previsão: progresso + posturas escolhidas para os jogos do usuário ainda não disputados da rodada */
 export function forecastKey(t: Tournament): string {
-  const tac = currentRoundMatches(t).filter(m => !m.played && m.tactics && (isUser(t, m.home) || isUser(t, m.away)))
-    .map(m => `${m.id}:${m.tactics!.home ?? ''}${m.tactics!.away ?? ''}`).join(',');
+  // posturas efetivas: "não escolhida" e "Equilibrado" dão a mesma chave
+  const tac = currentRoundMatches(t).filter(m => !m.played && (isUser(t, m.home) || isUser(t, m.away)))
+    .map(m => ({ id: m.id, e: effectiveTactics(t, m) }))
+    .filter(x => x.e.home !== 'bal' || x.e.away !== 'bal')
+    .map(x => `${x.id}:${x.e.home}${x.e.away}`).join(',');
   return progressKey(t) + '|' + tac;
 }
 

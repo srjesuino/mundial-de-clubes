@@ -39,7 +39,7 @@ function updateDrawButtons(): void {
   const D = T().draw;
   const done = !D || D.revealed >= D.pairs.length;
   const wasFocused = document.activeElement;
-  const hadFocus = wasFocused === $('btn-draw-next') || wasFocused === $('btn-draw-all') || wasFocused === $('screen-draw');
+  const hadFocus = ['btn-draw-next', 'btn-draw-all', 'btn-finish-draw', 'screen-draw'].some(id => wasFocused === $(id));
   setHidden('btn-draw-next', done);
   setHidden('btn-draw-all', done);
   setHidden('btn-finish-draw', !done);
@@ -48,7 +48,7 @@ function updateDrawButtons(): void {
     $(id).setAttribute('aria-disabled', String(drawAnimating));
     $(id).classList.toggle('opacity-50', drawAnimating);
   });
-  if (done && hadFocus) $('btn-finish-draw').focus({ preventScroll: true });
+  if (hadFocus) $(done ? 'btn-finish-draw' : 'btn-draw-next').focus({ preventScroll: true });
   $('draw-progress').textContent = D ? `Confronto ${Math.min(D.revealed, D.pairs.length)} de ${D.pairs.length}` : 'Sorteio concluído';
 }
 
@@ -71,13 +71,13 @@ export function openDraw(): void {
   const t = T();
   if (!t.draw || shielded()) return;
   clearDrawTimers();
-  hideEl('screen-dashboard');
-  showEl('screen-draw');
   $('draw-title').textContent = t.draw.title;
   $('draw-subtitle').textContent = t.draw.note;
   resetDrawUI();
   renderDrawHistory(t.draw.pairs.slice(0, t.draw.revealed));
-  updateDrawButtons();
+  updateDrawButtons(); // antes de mostrar: o foco inicial cai em "Sortear Confronto", não num botão que vai sumir
+  hideEl('screen-dashboard');
+  showEl('screen-draw');
   shieldClicks(450);
 }
 

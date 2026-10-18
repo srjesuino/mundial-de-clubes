@@ -1,6 +1,6 @@
 // Índice de Superação, colocação final, zebras, resumo para compartilhar e entrada da Galeria de Campeões.
 // Tudo é derivado do estado do torneio e das probabilidades do próprio motor (posturas neutras).
-import { baseOdds, isDecided, isUser, team, winnerId } from './core';
+import { PHASE_LABEL, baseOdds, isDecided, isUser, team, winnerId } from './core';
 import { describeConfig, qualifiedCount } from './config';
 import { sortGroupIds } from './groups';
 import { DIFF, easiestDiff } from './live';
@@ -46,7 +46,7 @@ export const fullyLive = (t: Tournament, m: PlayableMatch, id: string): boolean 
 export const superTotal = (t: Tournament, id: string): number => clubMatches(t, id).reduce((s, m) => s + superPoints(t, m, id), 0);
 
 /** "1 em N": a chance de ir tão bem em cada um destes jogos, um a um */
-export const superOneIn = (score: number): number => Math.max(1, Math.round(2 ** (score / 100)));
+export const superOneIn = (score: number): number => Math.max(1, 2 ** (score / 100));
 
 export interface Placement { rank: number; label: string }
 
@@ -98,7 +98,10 @@ export function placementOf(t: Tournament, id: string): Placement {
       if (x.group && t.groups[x.group]) {
         const gp = groupPos(x.group, id);
         stage = qualifiedCount(t.config) === 1 ? `${gp}º nos pontos corridos` : `${gp}º do Grupo ${x.group}`;
-      } else stage = `Sistema Suíço (${x.sw}-${x.sl})`;
+      } else if (t.config.initialPhase === 'swiss') stage = `Sistema Suíço (${x.sw}-${x.sl})`;
+      else if (t.bracket?.nodes.some(n => n.home === id || n.away === id)) stage = 'Dupla Eliminação';
+      else if (t.draw) stage = `aguardando o sorteio (${t.draw.phase === 'DE' ? 'Dupla Eliminação' : PHASE_LABEL[t.draw.phase]})`;
+      else stage = 'Mata-mata';
     }
   }
   const alive = t.phase !== 'END' && team(t, id).out === null; // ainda no torneio: a posição não está definida
@@ -266,12 +269,18 @@ export function normalizeHof(x: unknown): Hof | null {
 
 /** Entradas gravadas com a escala antiga de colocação: converte pela etapa (posição final de quem cai nela) */
 const OLD_STAGE_PLACE: Record<string, number> = {
-  'Final': 2, 'Semifinal': 3, 'Quartas de Final': 5, 'Oitavas de Final': 9, '16-avos de Final': 17, '32-avos de Final': 33
+  'Final': 2, 'Semifinal': 3, 'Quartas de Final': 5, 'Oitavas de Final': 9, '16-avos de Final': 17, '32-avos de Final': 33,
+  'Final da Lower': 3
 };
+/** Já está na escala nova? (posição no rótulo, ou rank que a escala antiga nunca alcança: ela ia no máximo a ~506) */
+const NEW_SCALE_LABEL = /\(\d+º(–\d+º)? de \d+\)$/;
 function migrateRanks(e: HofEntry): void {
+  const isNew = e.users.every(u => u.rank >= 999 || NEW_SCALE_LABEL.test(u.label) || u.rank >= 1001 - Math.max(e.n, 64));
+  if (isNew) { e.rv = 2; return; }
   e.users.forEach(u => {
     if (u.rank >= 999) return; // campeão e vice valem igual nas duas escalas
-    const place = OLD_STAGE_PLACE[u.label];
+    const league = /^(\d+)º nos pontos corridos$/.exec(u.label);
+    const place = league ? Number(league[1]) : OLD_STAGE_PLACE[u.label];
     // sem como saber a posição exata (fases de grupos, suíço, dupla eliminação antigos): metade de baixo da tabela
     u.rank = 1001 - (place ?? Math.ceil(e.n / 2) + 1);
   });

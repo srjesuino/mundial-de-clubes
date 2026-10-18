@@ -374,3 +374,64 @@ describe('correções da segunda revisão', () => {
     expect(h.list[0].users[0].rank).toBe(998);
   });
 });
+
+describe('correções da terceira revisão', () => {
+  it('postura igual não muda nada e "não escolhida" = Equilibrado na chave da previsão', async () => {
+    const { forecastKey } = await import('../../src/engine/forecast');
+    setSeed(3);
+    const t = createTournament(cfg({}), someUsers(1));
+    const me = t.userIds[0];
+    const m = currentRoundMatches(t).find(x => x.home === me || x.away === me)!;
+    const side = m.home === me ? 'home' : 'away';
+    const k0 = forecastKey(t);
+    expect(setTactic(t, m, side, 'bal')).toBe(false);
+    expect(setTactic(t, m, side, 'att')).toBe(true);
+    expect(forecastKey(t)).not.toBe(k0);
+    expect(setTactic(t, m, side, 'bal')).toBe(true);
+    expect(forecastKey(t)).toBe(k0);
+  });
+
+  it('galeria: entradas já na escala nova não são rebaixadas', async () => {
+    const { normalizeHof } = await import('../../src/engine/meta');
+    setSeed(4);
+    const t = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 16 }), someUsers(2)));
+    const e = hofEntry(t, 1) as unknown as { rv?: number; users: { rank: number }[] };
+    delete e.rv; // gravada por uma versão intermediária (escala nova, sem marcador)
+    const before = e.users.map(u => u.rank);
+    const h = normalizeHof({ v: 1, list: [e], titles: {} })!;
+    expect(h.list[0].users.map(u => u.rank)).toEqual(before);
+  });
+
+  it('antes do primeiro sorteio do mata-mata direto, a colocação não fala em Sistema Suíço', () => {
+    const t = createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1));
+    expect(placementOf(t, t.userIds[0]).label).toContain('aguardando o sorteio');
+    expect(buildShareText(t)).not.toContain('Suíço');
+  });
+
+  it('duas abas: a gravação que falhou é juntada depois, sem apagar o que a outra aba salvou', async () => {
+    const { vi } = await import('vitest');
+    const store: Record<string, string> = {};
+    let failA = false;
+    const makeLS = (failing: () => boolean) => ({
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => { if (failing()) throw new Error('quota'); store[k] = v; },
+      removeItem: (k: string) => { delete store[k]; }
+    });
+    setSeed(5);
+    const t1 = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1)));
+    const eA1 = hofEntry(t1, 1000), eB1 = hofEntry(t1, 2000), eA2 = hofEntry(t1, 3000);
+    (globalThis as { localStorage?: unknown }).localStorage = makeLS(() => failA);
+    vi.resetModules();
+    const tabA = await import('../../src/state/meta');
+    vi.resetModules();
+    const tabB = await import('../../src/state/meta');
+    failA = true;
+    tabA.recordHof(eA1);          // falha ao gravar
+    failA = false;
+    tabB.recordHof(eB1);          // a outra aba grava normalmente
+    tabA.recordHof(eA2);          // esta aba volta a conseguir gravar
+    const saved = JSON.parse(store['mundial64-hof-v1']).list.map((e: { id: string }) => e.id).sort();
+    expect(saved).toEqual([eA1.id, eB1.id, eA2.id].sort());
+    delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});

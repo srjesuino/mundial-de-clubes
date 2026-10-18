@@ -258,7 +258,7 @@ kbd {
 .pos-cell:focus-visible { outline: 2px solid #fde047; }
 
 /* Escudos escuros (Juventus, Tottenham...) sobre o painel escuro da partida */
-#match-header .tm-logo-lg { background: rgba(255, 255, 255, 0.08); border-radius: 9999px; padding: 4px; }
+#match-header .tm-logo-lg, #draw-reveal-area .tm-logo-lg { background: rgba(255, 255, 255, 0.1); border-radius: 9999px; padding: 4px; }
 .mg-sim-short { display: none; }
 
 /* Ao percorrer a grade de clubes com Tab, o cartão focado não fica sob o botão fixo "Iniciar Temporada" */

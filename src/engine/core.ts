@@ -59,6 +59,7 @@ export const baseOdds = (t: Tournament, m: PlayableMatch): Odds => matchOdds(sim
 /** Muda a postura de um clube do usuário num jogo ainda não disputado */
 export function setTactic(t: Tournament, m: PlayableMatch, side: 'home' | 'away', v: Tactic): boolean {
   if (m.played || !isUser(t, m[side])) return false;
+  if ((m.tactics?.[side] ?? 'bal') === v) return false; // nada mudou
   m.tactics = { ...m.tactics, [side]: v };
   return true;
 }

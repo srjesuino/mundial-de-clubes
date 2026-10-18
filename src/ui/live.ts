@@ -272,6 +272,8 @@ export function startLive(m: PlayableMatch, side: Side): void {
     maxDef: 0, skipped: false, pensSimulated: false, trailed: { home: false, away: false }, swings: [], said80: false, upsetBy: null
   };
   liveSpeed = prefs.speed;
+  // postura no pontapé inicial (o relatório mostra as chances "antes do jogo" com ela)
+  m.tac0 = { ...currentTactics() };
   const level = t.config.difficulty ?? 'normal';
   t.diffUsed = [...new Set([...(t.diffUsed ?? []), level])];
 
@@ -305,6 +307,7 @@ export function startLive(m: PlayableMatch, side: Side): void {
   persistLive();
   sfx.whistle(1, true);
   sfx.crowdBed();
+  $('match-card').focus({ preventScroll: true }); // também no 2º jogo da rodada (a camada não muda)
   shieldClicks(600);
   setLiveTimer();
 }
@@ -331,7 +334,7 @@ function liveTick(): void {
   L.min++;
   renderClock();
   sample();
-  if (L.min % 5 === 0) renderPrancheta();
+  renderPrancheta(); // a cada minuto, como a legenda ao lado
   persistLive();
   if (L.min === 105 && L.period === 'ET') logEvent('info', 'Fim do 1º tempo da prorrogação');
   if (L.min === 80 && L.period === 'REG' && L.m.kind === 'ko' && !L.said80) {
@@ -657,13 +660,14 @@ function nextLiveKick(): void {
   const tok = L.token;
   L.kick = { home: homeKicks, userAttacks };
   persistLive();
-  const commit = (goal: boolean, why?: string) => {
+  const commit = (goal: boolean, why?: string, miss = false) => {
     if (!L || L.token !== tok) return;
     L.kick = null;
     recordKick(P, homeKicks, goal);
     const e = penKickProb(att.ovr, def.ovr);
     if (userAttacks) { L.mg.penS++; if (goal) L.mg.penSG++; bumpSkill(T(), 'penS', goal, e); }
-    else { L.mg.penD++; if (!goal) { L.mg.penDS++; sfx.buzz(30); } bumpSkill(T(), 'penD', goal, e); }
+    // "pênaltis pegos": só defesas de verdade (chute para fora não conta)
+    else { L.mg.penD++; if (!goal && !miss) { L.mg.penDS++; sfx.buzz(30); } bumpSkill(T(), 'penD', goal, e); }
     logEvent(goal ? ((L.side === 'home') === homeKicks ? 'goal' : 'goalAgainst') : 'note', `${goal ? '⚽' : '❌'} ${att.name}: ${why ?? ''}`);
     renderPenBoard();
     sample();

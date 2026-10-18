@@ -7,7 +7,8 @@ import { store } from '../state/store';
 import { $, hideEl, setHidden, showEl } from './dom';
 import * as sfx from './sound';
 
-type Commit = (goal: boolean, why?: string) => void;
+/** goal: entrou · why: texto do lance · miss: foi para fora (não foi defesa) */
+type Commit = (goal: boolean, why?: string, miss?: boolean) => void;
 type Sfx = 'goal' | 'save' | 'post' | 'miss';
 
 const MG: {
@@ -325,7 +326,7 @@ export function penaltyDefendMinigame(att: TeamState, def: TeamState, cb: Commit
     const out = penaltyOutcome(att.ovr, def.ovr, kick.col, kick.row, diveCol);
     revealPenalty(cells, kick.col, kick.row, diveCol, out);
     sfx.kick();
-    mgFinish(out.goal ? 'GOL DELES...' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-red-400' : 'text-emerald-400', () => cb(out.goal, out.why), 1300, false, penSound(out));
+    mgFinish(out.goal ? 'GOL DELES...' : out.miss ? 'PRA FORA!' : 'DEFENDEU!', out.goal ? 'text-red-400' : 'text-emerald-400', () => cb(out.goal, out.why, !!out.miss), 1300, false, penSound(out));
   };
   cells.forEach((c, i) => c.addEventListener('click', () => dive(i % 3)));
   mgStartBar(D.penDefMs);

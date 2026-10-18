@@ -1,11 +1,11 @@
 // Relatório de uma partida disputada: placar, gols por minuto, pênaltis, chances antes do jogo e a curva de chance.
 // Tudo sai do resultado guardado e das mesmas fórmulas do simulador.
-import { isPlayable, isUser, oddsFor, simContext, team, winnerId, isDecided } from '../engine/core';
+import { effectiveTactics, isPlayable, isUser, oddsFor, simContext, team, winnerId, isDecided } from '../engine/core';
 import { DIFF } from '../engine/live';
 import { superPoints, achievedChance } from '../engine/meta';
 import { TACTIC_LABEL, hasPens, mostLikelyScore, scoreProb } from '../engine/model';
 import { allMatches } from '../engine/tournament';
-import type { Side } from '../engine/types';
+import type { Side, Tactic } from '../engine/types';
 import { store } from '../state/store';
 import { logoImg } from './crest';
 import { $, escapeHtml, fmtBR, showEl } from './dom';
@@ -22,8 +22,11 @@ export function openReport(id: string): void {
   const r = m.res;
   const H = team(t, m.home), A = team(t, m.away);
   const side: Side = isUser(t, m.away) && !isUser(t, m.home) ? 'away' : 'home';
-  const ctx = simContext(t, m);
-  const o = oddsFor(t, m);
+  // "Antes do jogo": a postura do pontapé inicial (num jogo ao vivo ela pode ter mudado depois)
+  const tac0 = m.tac0 ?? effectiveTactics(t, m);
+  const ctx = simContext(t, m, tac0);
+  const o = oddsFor(t, m, tac0);
+  const ctxFinal = simContext(t, m);
   const w = isDecided(m) ? winnerId(m) : null;
   const ex = extraText(m);
 
@@ -63,15 +66,18 @@ export function openReport(id: string): void {
   // Curva de chance (do ponto de vista do clube do usuário, ou do mandante)
   let chart = '';
   if (r.gm) {
-    const series = seriesFromGoals(ctx, m.kind, side, r.gm, r.et);
+    const series = seriesFromGoals(ctxFinal, m.kind, side, r.gm, r.et);
     const total = r.et ? 120 : 90;
     chart = `<div class="mt-3"><p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Chance de ${m.kind === 'group' ? 'vitória' : m.kind === 'ko' ? 'avançar' : 'vencer'} de ${escapeHtml(team(t, m[side]).name)}, minuto a minuto</p>
       <div class="relative"><svg viewBox="0 0 120 40" preserveAspectRatio="none" class="block w-full h-14 rounded bg-slate-900/70" role="img" aria-label="Curva de chance ao longo do jogo">${vizSvg(series, total)}</svg><div class="absolute inset-0" aria-hidden="true">${marksHtml(r.gm, [], side === 'home', total, false)}</div></div>
       <p class="text-[10px] text-slate-500 mt-0.5">Pelo placar e pelo tempo restante, com a postura final do jogo (o mesmo cálculo da partida ao vivo).</p></div>`;
   }
 
-  const tac = m.tactics && (m.tactics.home !== undefined || m.tactics.away !== undefined)
-    ? `<p>Postura: ${(['home', 'away'] as const).filter(s => m.tactics?.[s] && m.tactics[s] !== 'bal').map(s => `${escapeHtml(team(t, m[s]).name)} ${TACTIC_LABEL[m.tactics![s]!]}`).join(' · ') || 'Equilibrado'}</p>` : '';
+  const tacText = (x: Partial<Record<Side, Tactic>> | undefined) =>
+    (['home', 'away'] as const).filter(sd => x?.[sd] && x[sd] !== 'bal').map(sd => `${escapeHtml(team(t, m[sd]).name)} ${TACTIC_LABEL[x![sd]!]}`).join(' · ') || 'Equilibrado';
+  const finalTac = effectiveTactics(t, m);
+  const changed = (['home', 'away'] as const).some(sd => (tac0[sd] ?? 'bal') !== (finalTac[sd] ?? 'bal'));
+  const tac = `<p>Postura no início: ${tacText(tac0)}${changed ? ` · postura final: ${tacText(finalTac)}` : ''}</p>`;
   const before = o.advH !== undefined
     ? `${escapeHtml(H.name)} ${pc(o.advH)} · ${escapeHtml(A.name)} ${pc(1 - o.advH)} (${m.kind === 'ko' ? 'avançar' : 'vencer'})`
     : `${escapeHtml(H.name)} ${pc(o.ph)} · empate ${pc(o.pd)} · ${escapeHtml(A.name)} ${pc(o.pa)}`;

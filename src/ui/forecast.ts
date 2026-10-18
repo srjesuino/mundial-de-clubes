@@ -1,7 +1,7 @@
 // Probabilidades do torneio: roda o Monte Carlo em pedaços (sem travar a tela), guarda e mostra
 import { isUser, team } from '../engine/core';
 import { qualifiedCount } from '../engine/config';
-import { canForecast, clinchStatus, decidedNow, forecastJob, forecastKey, formatChance, marginPP, storeForecast, type ForecastJob } from '../engine/forecast';
+import { canForecast, clinchStatus, decidedNow, forecastJob, forecastKey, formatChance, marginPP, progressKey, storeForecast, type ForecastJob } from '../engine/forecast';
 import { sortGroupIds } from '../engine/groups';
 import { currentRoundMatches } from '../engine/tournament';
 import type { Forecast, Tournament } from '../engine/types';
@@ -12,6 +12,9 @@ import { registerDashboardExtra } from './extras';
 import { on } from './hooks';
 
 let job: ForecastJob | null = null;
+/** Previsões já calculadas nesta etapa do torneio, por chave (posturas diferentes do mesmo momento) */
+const cache = new Map<string, Forecast>();
+let cacheStage = '';
 let jobOwner: Tournament | null = null;
 let debounce: number | undefined;
 let chunkTimer: number | undefined;
@@ -37,6 +40,10 @@ function startIfNeeded(): void {
   if (screensBusy()) { mcSchedule(); return; }
   const key = forecastKey(t);
   if (t.mc?.key === key) { refreshViews(); return; }
+  const stage = progressKey(t);
+  if (stage !== cacheStage) { cache.clear(); cacheStage = stage; }
+  const hit = cache.get(key);
+  if (hit) { storeForecast(t, hit); saveGame(); refreshViews(); return; }
   if (job && jobOwner === t && job.key === key) return; // já calculando
   cancel();
   try { job = forecastJob(t); } catch { job = null; return; }
@@ -58,7 +65,10 @@ function chunk(): void {
     return;
   }
   if (finished) {
-    storeForecast(t, job.result());
+    const res = job.result();
+    if (progressKey(t) !== cacheStage) { cache.clear(); cacheStage = progressKey(t); }
+    cache.set(res.key, res);
+    storeForecast(t, res);
     cancel();
     saveGame();
     refreshViews();
@@ -87,12 +97,14 @@ function refreshProgress(): void {
   const t = store.t;
   if (t.mc && t.mc.key !== job.key) return; // mostra o valor anterior até terminar
   if (t.mc) return;
+  el.removeAttribute('aria-label');
   el.innerHTML = `<span class="text-slate-400">Calculando probabilidades…</span><span class="text-slate-500 tabular-nums">${fmtBR(job.done)}/${fmtBR(job.total)} simulações</span>`;
   showEl(el);
 }
 
 function renderDashMc(): void {
   const el = $('dash-mc');
+  el.removeAttribute('aria-label');
   const t = store.t;
   if (!t || t.phase === 'END') { setHidden(el, true); return; }
   const f = t.mc;
@@ -172,11 +184,31 @@ function cellButton(f: Forecast, id: string, ci: number): string {
   return `<td class="px-1 py-1 text-center"><button type="button" data-tip="${tip}" data-val="${c.text}" data-label="${escapeHtml(f.cols[ci])}" aria-label="${escapeHtml(f.cols[ci])}: ${c.text}" class="odds-cell min-h-[44px] w-full rounded px-1 tabular-nums ${c.sure ? (c.text === '✓' ? 'text-emerald-300 font-black' : 'text-slate-600') : 'text-slate-200 hover:bg-slate-700/60'}">${c.text}</button></td>`;
 }
 
-function renderOdds(): void {
+/** Previsão "resolvida" pelo resultado final: decididos viram 1/0, posição média vira a posição final */
+function finalForecast(t: Tournament, mc: Forecast): Forecast {
+  const known = decidedNow(t);
+  const p: Forecast['p'] = {};
+  const avg = mc.cols.indexOf('Posição média');
+  const order = avg >= 0 ? sortGroupIds(t, Object.keys(t.groups)[0]) : null;
+  Object.keys(t.teams).forEach(id => {
+    p[id] = mc.cols.map((_, ci) => {
+      if (ci === avg && order) return order.indexOf(id) + 1;
+      const k = known[id]?.[ci];
+      return k === '1' ? 1 : k === '0' ? 0 : mc.p[id]?.[ci] ?? 0;
+    });
+  });
+  return { ...mc, p, known };
+}
+
+let drawn = '';
+function renderOdds(force = false): void {
   const t = store.t;
   if (!t) return;
-  // no fim do torneio, o que já aconteceu aparece como ✓/— (a previsão antiga só preenche o que não se decide)
-  const f = t.mc && t.phase === 'END' ? { ...t.mc, known: decidedNow(t) } : t.mc;
+  const sig = [t.mc?.key, t.mc?.n, t.phase, oddsTab, posGroup, t.draw ? 1 : 0, pending(t) ? 1 : 0, job ? job.done : -1].join('|');
+  if (!force && sig === drawn && isShown('modal-odds')) return;
+  drawn = sig;
+  // no fim do torneio, o que já aconteceu aparece como ✓/— e manda na ordem; na liga, a posição final real
+  const f = t.mc && t.phase === 'END' ? finalForecast(t, t.mc) : t.mc;
   const sub = $('odds-sub'), content = $('odds-content'), tabs = $('odds-tabs');
   if (!f) {
     sub.textContent = '';
@@ -195,7 +227,7 @@ function renderOdds(): void {
   tabs.innerHTML = hasPos
     ? (['torneio', 'pos'] as const).map(k => `<button type="button" role="tab" id="odds-tab-${k}" aria-controls="odds-content" data-tab="${k}" aria-selected="${oddsTab === k}" tabindex="${oddsTab === k ? 0 : -1}" class="min-h-[44px] px-4 rounded-lg text-sm font-bold border ${oddsTab === k ? 'bg-violet-700 border-violet-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${k === 'torneio' ? 'Torneio' : 'Posições no grupo'}</button>`).join('')
     : '';
-  const go = (k: typeof oddsTab) => { oddsTab = k; renderOdds(); document.getElementById('odds-tab-' + k)?.focus(); };
+  const go = (k: typeof oddsTab) => { oddsTab = k; renderOdds(true); document.getElementById('odds-tab-' + k)?.focus(); };
   tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => {
     b.onclick = () => go(b.dataset.tab as typeof oddsTab);
     b.onkeydown = e => {
@@ -260,16 +292,16 @@ function renderPositions(t: Tournament, f: Forecast): void {
       }).join('')}</tr>`;
     }).join('')}</tbody></table></div>
     <p class="text-[10px] text-slate-500 text-center mt-2">% das simulações em que o clube termina em cada posição · contorno verde = vagas de classificação · toque para ver o valor exato</p>`;
-  $<HTMLSelectElement>('pos-group').onchange = e => { posGroup = (e.target as HTMLSelectElement).value; renderPositions(t, f); };
+  $<HTMLSelectElement>('pos-group').onchange = e => { posGroup = (e.target as HTMLSelectElement).value; renderOdds(true); $('pos-group').focus(); };
   content.querySelectorAll<HTMLButtonElement>('.pos-cell').forEach(b => {
     b.onclick = () => { b.textContent = b.textContent === b.title ? b.dataset.short ?? '' : b.title; };
-    b.onfocus = () => { if (b.textContent !== b.title) b.textContent = b.title; };
+    b.onfocus = () => { if (b.matches(':focus-visible') && b.textContent !== b.title) b.textContent = b.title; };
   });
 }
 
 export function openOdds(): void {
   oddsTab = 'torneio';
-  renderOdds();
+  renderOdds(true);
   showEl('modal-odds');
   $('modal-odds').scrollTop = 0;
   if (!T().mc) mcSchedule();
@@ -283,6 +315,6 @@ export function initForecast(): void {
   on('drawFinalized', mcSchedule);
   on('advance', mcSchedule);
   on('liveStart', () => { cancel(); });
-  on('newTournament', () => { cancel(); clearTimeout(debounce); });
+  on('newTournament', () => { cancel(); clearTimeout(debounce); cache.clear(); cacheStage = ''; });
   document.addEventListener('mc64:tactic', () => { renderDashMc(); renderScenarios(); mcSchedule(); });
 }

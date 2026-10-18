@@ -45,9 +45,9 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
     <button ${m.played ? `data-report="${m.id}"` : 'disabled'} class="match-result-card w-full text-left rounded-xl p-3 md:p-4 ${isUserMatch(t, m) ? 'border-emerald-500/50 bg-emerald-900/20' : ''} ${m.played ? 'hover:border-slate-500 transition' : ''}">
       ${showStage || badge ? `<div class="flex items-center justify-center gap-2 mb-2">${showStage ? `<span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center">${escapeHtml(m.stage)}</span>` : ''}${badge}</div>` : ''}
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 md:gap-3 flex-1 justify-end text-right min-w-0">
+        <div class="flex items-center gap-1 md:gap-3 flex-1 justify-end text-right min-w-0">
           <span class="${hw} text-xs md:text-sm club-name text-right">${escapeHtml(H.name)}</span>
-          ${logoImg(H, 'w-6 h-6 md:w-8 md:h-8 object-contain shrink-0')}
+          ${logoImg(H, 'w-5 h-5 md:w-8 md:h-8 object-contain shrink-0')}
         </div>
         <div class="shrink-0 px-1 md:px-2 text-center flex flex-col items-center">
           <div class="flex justify-center items-center gap-1 md:gap-2">
@@ -55,13 +55,14 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
             <span class="text-slate-600">-</span>
             <span class="text-white font-black text-base md:text-2xl bg-slate-800 px-1.5 md:px-3 py-1 rounded tabular-nums">${aSc}</span>
           </div>
-          ${ex ? `<span class="text-[10px] md:text-xs text-amber-300 font-bold mt-1 whitespace-nowrap">${ex}</span>` : ''}
+
         </div>
-        <div class="flex items-center gap-2 md:gap-3 flex-1 justify-start text-left min-w-0">
-          ${logoImg(A, 'w-6 h-6 md:w-8 md:h-8 object-contain shrink-0')}
+        <div class="flex items-center gap-1 md:gap-3 flex-1 justify-start text-left min-w-0">
+          ${logoImg(A, 'w-5 h-5 md:w-8 md:h-8 object-contain shrink-0')}
           <span class="${aw} text-xs md:text-sm club-name">${escapeHtml(A.name)}</span>
         </div>
       </div>
+      ${ex ? `<div class="text-center text-[10px] md:text-xs text-amber-300 font-bold mt-1">${ex}</div>` : ''}
     </button>`;
 }
 

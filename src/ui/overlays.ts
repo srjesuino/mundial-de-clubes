@@ -35,7 +35,7 @@ function focusInto(id: string): void {
 
 /** Sem camada aberta e sem quem abriu: o controle principal da tela visível */
 function focusScreen(): void {
-  const candidates = ['btn-draw', 'btn-play-match', 'btn-simulate-match', 'btn-show-champion', 'dash-phase', 'btn-start-sandbox', 'search-team'];
+  const candidates = ['btn-draw', 'btn-play-match', 'btn-simulate-match', 'btn-show-champion', 'dash-phase', 'btn-start-sandbox', 'select-title'];
   const target = candidates.map(el).find(x => !!x && !x.closest('.hidden') && x.getClientRects().length > 0);
   target?.focus({ preventScroll: true });
 }
