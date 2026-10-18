@@ -9,7 +9,7 @@ import { T } from '../state/store';
 import { takeAchStrip } from './ach';
 import { openBracket } from './bracket';
 import { logoImg, setLogo } from './crest';
-import { $, escapeHtml, fmtBR, hideEl, pct, setHidden, showEl } from './dom';
+import { $, escapeHtml, fmtBR, hideEl, pct, pl, setHidden, showEl } from './dom';
 import { championExtras } from './hall';
 import { campaignTiles, miniMatchRow } from './render';
 import { openAllGroups } from './results';
@@ -49,7 +49,7 @@ export function showChampion(celebrate: boolean): void {
   const path = championPath(t);
   $('champ-path').innerHTML = path.length
     ? path.map(m => `<div><p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">${escapeHtml(m.stage)}</p>${miniMatchRow(m)}</div>`).join('')
-    : `<p class="text-slate-400 text-sm">${C.st.v} vitórias, ${C.st.e} empates e ${C.st.d} derrotas nos pontos corridos (${C.p} pontos).</p>`;
+    : `<p class="text-slate-400 text-sm">${pl(C.st.v, 'vitória', 'vitórias')}, ${pl(C.st.e, 'empate', 'empates')} e ${pl(C.st.d, 'derrota', 'derrotas')} nos pontos corridos (${pl(C.p, 'ponto', 'pontos')}).</p>`;
 
   $('champ-user-teams').innerHTML = t.userIds.map(id => {
     const x = team(t, id);

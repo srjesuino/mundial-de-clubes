@@ -196,6 +196,27 @@ describe('sorteios', () => {
     }
   });
 
+  it('recusa o mesmo clube escolhido duas vezes', () => {
+    const [a] = someUsers(1);
+    expect(() => createTournament(cfg({}), [a, a])).toThrow(/mais de uma vez/);
+  });
+
+  it('dupla eliminação: "invicto" só para quem não perdeu no torneio todo', () => {
+    const seen = { yes: 0, no: 0 };
+    for (let seed = 1; seed <= 120; seed++) {
+      setSeed(seed * 31);
+      const t = createTournament(cfg({ initialPhase: 'swiss', totalTeamsSwiss: 16, bracketFormat: 'double' }), someUsers(1));
+      playAll(t);
+      const gf1 = t.bracket!.nodes.find(n => n.isGF1)!;
+      if (winnerId(gf1) !== gf1.home) continue;
+      const lost = t.teams[t.champion!].st.d > 0;
+      expect(/invicto/.test(t.championNote ?? '')).toBe(!lost);
+      if (lost) seen.no++; else seen.yes++;
+    }
+    expect(seen.no).toBeGreaterThan(0);
+    expect(seen.yes).toBeGreaterThan(0);
+  });
+
   it('recusa mais clubes do usuário do que vagas', () => {
     expect(() => createTournament(cfg({ groupsCount: 1, teamsPerGroup: 3, advancingPerGroup: 1 }), someUsers(4))).toThrow(/vagas/);
   });

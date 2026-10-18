@@ -108,3 +108,5 @@ export function srSay(text: string, urgent = false): void {
 
 /** Número no formato brasileiro (1.240 · 12,4) */
 export const fmtBR = (x: number, digits = 0): string => x.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+/** "1 vitória" / "3 vitórias" */
+export const pl = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;

@@ -257,7 +257,7 @@ export function playRoundTicker(ms: PlayableMatch[], title: string, onDone: () =
   shownRows.forEach(r => { r.el = $('tk-list').querySelector<HTMLElement>(`[data-mid="${r.m.id}"]`); });
   rows.forEach(r => { if (r.static) { r.h = r.m.res!.gH; r.a = r.m.res!.gA; setScore(r, 'encerrado'); } });
   const more = $('tk-more');
-  more.textContent = hidden > 0 ? `+${hidden} jogos (todos aparecem nos resultados)` : '';
+  more.textContent = hidden === 1 ? '+1 jogo (aparece nos resultados)' : hidden > 1 ? `+${hidden} jogos (todos aparecem nos resultados)` : '';
   more.classList.toggle('hidden', hidden <= 0);
   $('tk-tables').innerHTML = '';
   const fastBtn = $('tk-fast');

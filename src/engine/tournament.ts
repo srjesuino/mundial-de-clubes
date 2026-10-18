@@ -34,6 +34,7 @@ export function createTournament(
   const total = totalTeamsFor(config);
   if (!userIds.length) throw new Error('Escolha pelo menos um clube.');
   if (userIds.length > total) throw new Error(`O torneio tem ${total} vagas, mas ${userIds.length} clubes foram escolhidos.`);
+  if (new Set(userIds).size !== userIds.length) throw new Error('O mesmo clube foi escolhido mais de uma vez.');
   const missing = userIds.find(id => !catalog.some(c => c.id === id));
   if (missing) throw new Error(`Clube desconhecido: ${missing}`);
   const bases = buildTournamentPool(total, userIds, slots, catalog);

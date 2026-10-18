@@ -76,7 +76,12 @@ function propagateDE(t: Tournament, n: DENode): void {
   const w = winnerId(n), l = loserId(n);
   team(t, l).dl++;
   if (n.isGF1) {
-    if (w === n.home) { team(t, l).out = 'Grande Final'; declareChampion(t, w, l, 'Campeão invicto na Grande Final'); return; }
+    if (w === n.home) {
+      // "invicto" só sem derrota no torneio todo (grupos ou suíço antes da chave contam), a mesma regra da conquista
+      team(t, l).out = 'Grande Final';
+      declareChampion(t, w, l, team(t, w).st.d === 0 ? 'Campeão invicto na Grande Final' : 'Campeão na Grande Final, sem perder na chave');
+      return;
+    }
     // Campeão da lower venceu: os dois têm uma derrota → jogo de "reset"
     const g2 = deNode(t, 'GF2');
     g2.home = n.home;

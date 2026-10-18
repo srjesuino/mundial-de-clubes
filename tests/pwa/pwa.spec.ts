@@ -47,3 +47,23 @@ test('offline: dá para começar e simular uma rodada sem internet', async ({ pa
   await expect(page.locator('#round-ticker:not(.hidden), #modal-round-results:not(.hidden)')).toHaveCount(1, { timeout: 10_000 });
   await context.setOffline(false);
 });
+
+test('escudos: o que a 1ª visita não guardou é baixado na visita seguinte', async ({ page, context }) => {
+  const { ALL_TEAMS } = await import('../../src/data/teams');
+  const total = new Set(ALL_TEAMS.map(t => t.logo)).size;
+  // 1ª visita sem o servidor de escudos (rede caiu): nada vai para o cache
+  let up = false;
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await context.route('https://tmssl.akamaized.net/**', route => (up
+    ? route.fulfill({ status: 200, contentType: 'image/png', headers: { 'access-control-allow-origin': '*' }, body: png })
+    : route.abort()));
+  await controlled(page);
+  const count = () => page.evaluate(async () => (await (await caches.open('escudos-v2')).keys()).length);
+  await page.waitForTimeout(1500);
+  expect(await count()).toBe(0);
+  // volta a rede: ao abrir de novo, completa os escudos sozinho
+  up = true;
+  await page.reload();
+  await page.waitForFunction(() => !!(window as any).__mc64);
+  await expect.poll(count, { timeout: 20_000 }).toBe(total);
+});

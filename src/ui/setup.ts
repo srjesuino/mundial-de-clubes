@@ -253,11 +253,12 @@ export function setupUntouched(): boolean {
 
 const DRAFT_KEY = 'mc64-setup-draft';
 /** Guarda regras e clubes escolhidos antes de recarregar para a versão nova */
-export function saveSetupDraft(): void {
+export function saveSetupDraft(): boolean {
   try {
     const values = Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('.sb-input')).map(el => [el.id, el.value]));
     sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ values, selected: store.selectedIds }));
-  } catch { /* sem sessionStorage: segue sem rascunho */ }
+    return true;
+  } catch { return false; /* sem sessionStorage: segue sem rascunho */ }
 }
 function restoreSetupDraft(): void {
   let raw: string | null = null;
@@ -265,11 +266,22 @@ function restoreSetupDraft(): void {
   if (!raw || store.t) return;
   try {
     const d = JSON.parse(raw) as { values?: Record<string, string>; selected?: string[] };
+    // o rascunho pode vir da versão anterior: só entra o que ainda é uma opção válida aqui
     Object.entries(d.values ?? {}).forEach(([id, v]) => {
-      const el = document.getElementById(id) as HTMLInputElement | null;
-      if (el && el.classList.contains('sb-input') && typeof v === 'string') el.value = v;
+      const el = document.getElementById(id);
+      if (!el?.classList.contains('sb-input') || typeof v !== 'string') return;
+      if (el instanceof HTMLSelectElement) {
+        if (Array.from(el.options).some(o => o.value === v)) el.value = v;
+      } else if (el instanceof HTMLInputElement) {
+        if (el.type === 'number') {
+          const n = Number(v);
+          if (v.trim() === '' || !Number.isInteger(n)) return;
+          if ((el.min !== '' && n < Number(el.min)) || (el.max !== '' && n > Number(el.max))) return;
+        }
+        el.value = v;
+      }
     });
-    if (Array.isArray(d.selected)) store.selectedIds = d.selected.filter(id => typeof id === 'string' && ALL_TEAMS.some(t => t.id === id)).slice(0, MAX_USER_TEAMS);
+    if (Array.isArray(d.selected)) store.selectedIds = [...new Set(d.selected.filter(id => typeof id === 'string' && ALL_TEAMS.some(t => t.id === id)))].slice(0, MAX_USER_TEAMS);
   } catch { /* rascunho ilegível */ }
 }
 
