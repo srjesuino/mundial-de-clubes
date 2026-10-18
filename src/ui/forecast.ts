@@ -167,7 +167,7 @@ function cellButton(f: Forecast, id: string, ci: number): string {
   if (avg) return `<td class="px-1 py-1.5 text-center tabular-nums text-slate-300">${fmtBR(f.p[id]?.[ci] ?? 0, 1)}</td>`;
   const c = formatChance(f, id, ci);
   const tip = c.sure ? (c.text === '✓' ? 'já garantido' : 'sem chance') : `±${fmtBR(marginPP(c.p, f.n), 1)} p.p.`;
-  return `<td class="px-1 py-1 text-center"><button type="button" data-tip="${tip}" data-val="${c.text}" class="odds-cell min-h-[36px] w-full rounded px-1 tabular-nums ${c.sure ? (c.text === '✓' ? 'text-emerald-300 font-black' : 'text-slate-600') : 'text-slate-200 hover:bg-slate-700/60'}">${c.text}</button></td>`;
+  return `<td class="px-1 py-1 text-center"><button type="button" data-tip="${tip}" data-val="${c.text}" aria-label="${escapeHtml(f.cols[ci])}: ${c.text}" class="odds-cell min-h-[44px] w-full rounded px-1 tabular-nums ${c.sure ? (c.text === '✓' ? 'text-emerald-300 font-black' : 'text-slate-600') : 'text-slate-200 hover:bg-slate-700/60'}">${c.text}</button></td>`;
 }
 
 function renderOdds(): void {
@@ -184,10 +184,21 @@ function renderOdds(): void {
   sub.textContent = `${fmtBR(f.n)} simulações · ${f.label}${t.phase === 'END' ? ' · última previsão antes do fim do torneio' : t.draw ? ' · antes do sorteio' : pending(t) ? ' · atualizando…' : ''}`;
   const hasPos = Object.keys(f.pos).length > 0 && t.phase === 'GROUP';
   if (!hasPos) oddsTab = 'torneio';
+  tabs.setAttribute('aria-label', 'Probabilidades');
+  content.setAttribute('role', hasPos ? 'tabpanel' : 'region');
+  content.setAttribute('aria-labelledby', hasPos ? 'odds-tab-' + oddsTab : 'odds-sub');
   tabs.innerHTML = hasPos
-    ? (['torneio', 'pos'] as const).map(k => `<button type="button" role="tab" data-tab="${k}" aria-selected="${oddsTab === k}" class="min-h-[44px] px-4 rounded-lg text-sm font-bold border ${oddsTab === k ? 'bg-violet-700 border-violet-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${k === 'torneio' ? 'Torneio' : 'Posições no grupo'}</button>`).join('')
+    ? (['torneio', 'pos'] as const).map(k => `<button type="button" role="tab" id="odds-tab-${k}" aria-controls="odds-content" data-tab="${k}" aria-selected="${oddsTab === k}" tabindex="${oddsTab === k ? 0 : -1}" class="min-h-[44px] px-4 rounded-lg text-sm font-bold border ${oddsTab === k ? 'bg-violet-700 border-violet-400 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${k === 'torneio' ? 'Torneio' : 'Posições no grupo'}</button>`).join('')
     : '';
-  tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => { b.onclick = () => { oddsTab = b.dataset.tab as typeof oddsTab; renderOdds(); }; });
+  const go = (k: typeof oddsTab) => { oddsTab = k; renderOdds(); document.getElementById('odds-tab-' + k)?.focus(); };
+  tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => {
+    b.onclick = () => go(b.dataset.tab as typeof oddsTab);
+    b.onkeydown = e => {
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+      e.preventDefault();
+      go(e.key === 'Home' ? 'torneio' : e.key === 'End' ? 'pos' : oddsTab === 'torneio' ? 'pos' : 'torneio');
+    };
+  });
   if (oddsTab === 'pos' && hasPos) { renderPositions(t, f); return; }
 
   const ti = titleCol(f);
@@ -205,7 +216,7 @@ function renderOdds(): void {
     <tbody>${ids.map(id => {
       const x = team(t, id);
       const u = isUser(t, id);
-      return `<tr class="border-b border-slate-700/30 ${u ? 'bg-emerald-900/30' : ''}"><td class="sticky-col ${u ? 'bg-emerald-950 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-200'} py-1 pl-2 pr-2"><div class="flex items-center gap-2 whitespace-nowrap max-w-[11rem] md:max-w-none">${logoImg(x, 'w-5 h-5 object-contain shrink-0')}<span class="truncate">${escapeHtml(x.name)}</span></div></td>${f.cols.map((_, ci) => cellButton(f, id, ci)).join('')}</tr>`;
+      return `<tr class="border-b border-slate-700/30 ${u ? 'bg-emerald-900/30' : ''}"><th scope="row" class="text-left font-normal sticky-col ${u ? 'bg-emerald-950 text-emerald-300 font-bold' : 'bg-slate-800 text-slate-200'} py-1 pl-2 pr-2"><div class="flex items-center gap-2 whitespace-nowrap max-w-[11rem] md:max-w-none">${logoImg(x, 'w-5 h-5 object-contain shrink-0')}<span class="truncate">${escapeHtml(x.name)}</span></div></th>${f.cols.map((_, ci) => cellButton(f, id, ci)).join('')}</tr>`;
     }).join('')}</tbody></table></div>`;
   bindCells(content);
 }

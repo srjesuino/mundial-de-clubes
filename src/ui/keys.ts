@@ -22,12 +22,15 @@ function onKey(e: KeyboardEvent): void {
     if (e.key === 'Escape') { e.preventDefault(); $('confirm-no').click(); }
     return;
   }
-  if (minigameActive()) {
+  // minigame aberto (inclusive durante o aviso do resultado): só as teclas do lance valem
+  if (minigameActive() || isShown('minigame-overlay')) {
     if (minigameKey(e)) e.preventDefault();
     return;
   }
   if (tickerOpen()) {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') { e.preventDefault(); skipTicker(); }
+    // Enter/Espaço num botão do plantão (ex.: 2x) acionam o próprio botão
+    const onButton = (e.target as HTMLElement | null)?.closest?.('#round-ticker button');
+    if (e.key === 'Escape' || (!onButton && (e.key === 'Enter' || e.key === ' '))) { e.preventDefault(); skipTicker(); }
     return;
   }
   if (!anyModal() && !typing) {

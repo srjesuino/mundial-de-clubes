@@ -139,7 +139,7 @@ export function renderOdds(m: PlayableMatch): void {
   const H = team(t, m.home), A = team(t, m.away);
   if (o.advH !== undefined) {
     $('odds-bar').innerHTML = `<div class="bg-emerald-500" style="width:${o.advH * 100}%"></div><div class="bg-sky-500" style="width:${(1 - o.advH) * 100}%"></div>`;
-    $('odds-legend').innerHTML = `<span class="text-emerald-400 flex min-w-0 gap-1"><b class="shrink-0">${pct(o.advH)}</b><span class="truncate">${escapeHtml(H.name)}</span></span><span class="text-slate-500 shrink-0 px-1">${m.kind === 'ko' ? 'chance de avançar' : 'chance de vencer'}</span><span class="text-sky-400 flex min-w-0 gap-1 justify-end"><span class="truncate">${escapeHtml(A.name)}</span><b class="shrink-0">${pct(1 - o.advH)}</b></span>`;
+    $('odds-legend').innerHTML = `<span class="text-emerald-400 flex min-w-0 gap-1"><b class="shrink-0">${pct(o.advH)}</b><span class="truncate">${escapeHtml(H.name)}</span></span><span class="text-slate-500 shrink-0 px-1 hidden sm:inline">${m.kind === 'ko' ? 'chance de avançar' : 'chance de vencer'}</span><span class="text-sky-400 flex min-w-0 gap-1 justify-end"><span class="truncate">${escapeHtml(A.name)}</span><b class="shrink-0">${pct(1 - o.advH)}</b></span>`;
   } else {
     $('odds-bar').innerHTML = `<div class="bg-emerald-500" style="width:${o.ph * 100}%"></div><div class="bg-slate-500" style="width:${o.pd * 100}%"></div><div class="bg-sky-500" style="width:${o.pa * 100}%"></div>`;
     $('odds-legend').innerHTML = `<span class="text-emerald-400 flex min-w-0 gap-1"><b class="shrink-0">${pct(o.ph)}</b><span class="truncate">${escapeHtml(H.name)}</span></span><span class="shrink-0 px-1">Empate ${pct(o.pd)}</span><span class="text-sky-400 flex min-w-0 gap-1 justify-end"><span class="truncate">${escapeHtml(A.name)}</span><b class="shrink-0">${pct(o.pa)}</b></span>`;
@@ -228,7 +228,7 @@ function renderSwissView(): void {
           const isU = isUser(t, x.id);
           const border = x.status === 'advanced' ? 'border-l-2 border-l-emerald-500' : x.status === 'eliminated' ? 'border-l-2 border-l-red-500' : 'border-l-2 border-l-transparent';
           return `<tr class="border-b border-slate-700/30 hover:bg-white/5">
-            <td class="py-2 pl-2 sticky-col ${isU ? 'bg-indigo-950' : 'bg-slate-800'} ${border}"><div class="flex items-center gap-2 whitespace-nowrap">${logoImg(x, 'w-5 h-5 object-contain')}<span class="${isU ? 'text-indigo-300 font-bold' : 'text-slate-200'}">${escapeHtml(x.name)}</span></div></td>
+            <td class="py-2 pl-2 pr-3 sticky-col ${isU ? 'bg-indigo-950' : 'bg-slate-800'} ${border}"><div class="flex items-center gap-2 whitespace-nowrap">${logoImg(x, 'w-5 h-5 object-contain')}<span class="${isU ? 'text-indigo-300 font-bold' : 'text-slate-200'}">${escapeHtml(x.name)}</span></div></td>
             <td class="py-2 text-center text-white font-bold">${x.sw}-${x.sl}</td>
             <td class="py-2 text-center text-slate-400">${x.gf}</td>
             <td class="py-2 text-center text-slate-400">${x.gd > 0 ? '+' + x.gd : x.gd}</td>

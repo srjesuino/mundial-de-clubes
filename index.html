@@ -225,7 +225,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
                 <!-- Próximo Jogo -->
-                <div class="glass rounded-2xl p-6 col-span-1 flex flex-col justify-start gap-6 self-start">
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 flex flex-col justify-start gap-6 self-start">
                     <div>
                         <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-4">Próximo Confronto</h4>
                         <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-700/80 text-center">
@@ -262,36 +262,36 @@
 
                     <div class="flex flex-col gap-3">
                         <button id="btn-view-groups"
-                            class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg border border-slate-600 transition">Ver Todos os Grupos</button>
+                            class="min-h-[44px] bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg border border-slate-600 transition">Ver Todos os Grupos</button>
                         <button id="btn-view-bracket"
-                            class="bg-fuchsia-900/50 hover:bg-fuchsia-800/50 text-fuchsia-300 font-semibold py-2 px-4 rounded-lg border border-fuchsia-500/30 transition hidden">Ver Chaveamento</button>
+                            class="min-h-[44px] bg-fuchsia-900/50 hover:bg-fuchsia-800/50 text-fuchsia-300 font-semibold py-2 px-4 rounded-lg border border-fuchsia-500/30 transition hidden">Ver Chaveamento</button>
                         <button id="btn-view-history"
-                            class="bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 font-semibold py-2 px-4 rounded-lg border border-indigo-500/30 transition">Histórico de Resultados</button>
+                            class="min-h-[44px] bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 font-semibold py-2 px-4 rounded-lg border border-indigo-500/30 transition">Histórico de Resultados</button>
                         <button id="btn-view-stats"
-                            class="bg-cyan-900/40 hover:bg-cyan-800/40 text-cyan-300 font-semibold py-2 px-4 rounded-lg border border-cyan-500/30 transition">Estatísticas do Torneio</button>
+                            class="min-h-[44px] bg-cyan-900/40 hover:bg-cyan-800/40 text-cyan-300 font-semibold py-2 px-4 rounded-lg border border-cyan-500/30 transition">Estatísticas do Torneio</button>
                         <button id="btn-view-odds"
-                            class="bg-violet-900/40 hover:bg-violet-800/40 text-violet-300 font-semibold py-2 px-4 rounded-lg border border-violet-500/30 transition">📊 Probabilidades</button>
+                            class="min-h-[44px] bg-violet-900/40 hover:bg-violet-800/40 text-violet-300 font-semibold py-2 px-4 rounded-lg border border-violet-500/30 transition">📊 Probabilidades</button>
                         <div class="grid grid-cols-2 gap-3">
                             <button id="btn-view-hall"
-                                class="bg-amber-900/30 hover:bg-amber-800/40 text-amber-200 font-semibold py-2 px-3 rounded-lg border border-amber-500/30 transition text-sm">🏛️ Galeria</button>
+                                class="min-h-[44px] bg-amber-900/30 hover:bg-amber-800/40 text-amber-200 font-semibold py-2 px-3 rounded-lg border border-amber-500/30 transition text-sm">🏛️ Galeria</button>
                             <button id="btn-share"
-                                class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-600 transition text-sm">📋 Copiar resumo</button>
+                                class="min-h-[44px] bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-600 transition text-sm">📋 Copiar resumo</button>
                         </div>
                         <button id="btn-new-tournament"
-                            class="bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold py-2 px-4 rounded-lg border border-red-500/20 transition text-sm">Novo Torneio</button>
+                            class="min-h-[44px] bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold py-2 px-4 rounded-lg border border-red-500/20 transition text-sm">Novo Torneio</button>
                         <p class="text-[11px] text-slate-500 text-center">💾 O progresso é salvo automaticamente neste navegador.</p>
                     </div>
                 </div>
 
                 <!-- Tabela do Sistema Suíço -->
-                <div class="glass rounded-2xl p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-swiss-view">
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-swiss-view">
                     <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-1">Classificação - <span class="text-indigo-400">Sistema Suíço</span></h4>
                     <p class="text-slate-500 text-xs mb-4">3 vitórias classificam · 3 derrotas eliminam · cada rodada só cruza times com a mesma campanha</p>
                     <div class="table-scroll flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin" id="swiss-table-container"></div>
                 </div>
 
                 <!-- Tabela do Grupo -->
-                <div class="glass rounded-2xl p-6 col-span-1 lg:col-span-2 overflow-hidden" id="dash-group-view">
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden" id="dash-group-view">
                     <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-4">Classificação - <span
                             id="table-group-name" class="text-emerald-400">Grupo</span></h4>
                     <div class="table-scroll scrollbar-thin">
@@ -319,7 +319,7 @@
                 </div>
 
                 <!-- Mata-mata -->
-                <div class="glass rounded-2xl p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-ko-view">
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-ko-view">
                     <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-1" id="ko-view-title">Mata-Mata</h4>
                     <p class="text-slate-500 text-xs mb-4" id="ko-view-subtitle"></p>
                     <div class="flex flex-col gap-2 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin" id="ko-view-list"></div>
@@ -328,9 +328,9 @@
         </div>
 
         <!-- TELA 3: SIMULADOR DE JOGO -->
-        <div id="screen-match"
+        <div id="screen-match" role="dialog" aria-modal="true" aria-label="Partida ao vivo"
             class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-2 sm:p-4">
-            <div id="match-card" tabindex="-1"
+            <div id="match-card" tabindex="-1" data-autofocus
                 class="focus:outline-none w-full max-w-4xl glass rounded-3xl border border-slate-600 overflow-hidden shadow-2xl flex flex-col h-[94vh] sm:h-[88vh]">
 
                 <div id="match-header" class="shrink-0 bg-gradient-to-b from-slate-800 to-slate-900 p-4 md:p-8 border-b border-slate-700 relative">
@@ -388,7 +388,7 @@
 
                 <div class="flex-1 min-h-[3rem] p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scrollbar-thin" id="match-events"></div>
 
-                <div class="shrink-0 p-3 md:p-5 bg-slate-900 border-t border-slate-700 flex flex-wrap justify-center items-center gap-3">
+                <div id="match-footer" class="shrink-0 p-3 md:p-5 bg-slate-900 border-t border-slate-700 flex flex-wrap justify-center items-center gap-3">
                     <div id="speed-controls" class="flex items-center gap-1 bg-slate-800 rounded-xl p-1 border border-slate-700" role="group" aria-label="Velocidade">
                         <button data-speed="1" title="Velocidade 1x (tecla 1)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">1x</button>
                         <button data-speed="2" title="Velocidade 2x (tecla 2)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">2x</button>
@@ -431,7 +431,7 @@
                     <div id="mg-timer-bar" class="h-full bg-emerald-500" style="width:100%"></div>
                 </div>
             </div>
-            <button id="mg-sim-pens" class="hidden mt-4 px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-bold">Simular o resto dos pênaltis</button>
+            <button id="mg-sim-pens" class="hidden mt-4 px-5 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-bold" aria-label="Simular o resto dos pênaltis"><span class="mg-sim-long">Simular o resto dos pênaltis</span><span class="mg-sim-short">⏭ Simular</span></button>
           </div>
         </div>
 
@@ -486,7 +486,7 @@
             class="hidden fixed inset-0 bg-black/95 z-[45] p-4 md:p-8 overflow-y-auto">
             <div class="max-w-[1400px] mx-auto glass rounded-2xl p-6 relative border border-slate-600">
                 <button data-close="modal-groups" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-6 text-center text-emerald-400 px-10">Classificação Geral</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="all-groups-grid"></div>
             </div>
@@ -498,7 +498,7 @@
             <div
                 class="w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button id="btn-close-results" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-2 text-center text-emerald-400 px-10" id="rr-title">Resultados da Rodada</h2>
                 <p class="text-slate-400 text-center mb-6 text-sm" id="rr-subtitle">Todos os jogos desta fase</p>
                 <select id="history-filter" aria-label="Filtrar histórico"
@@ -507,7 +507,7 @@
                 <div id="rr-list" class="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin"></div>
 
                 <div class="mt-8 flex justify-center">
-                    <button id="btn-advance-round"
+                    <button id="btn-advance-round" data-autofocus
                         class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all text-lg w-full md:w-auto">
                         Avançar Rodada
                     </button>
@@ -519,7 +519,7 @@
         <div id="modal-bracket"
             class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-auto">
             <button data-close="modal-bracket" aria-label="Fechar"
-                class="fixed top-4 right-4 md:top-8 md:right-8 bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white z-[86] w-10 h-10 flex items-center justify-center font-bold shadow-[0_0_15px_rgba(0,0,0,0.8)] border border-slate-500">X</button>
+                class="fixed top-4 right-4 md:top-8 md:right-8 bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white z-[86] w-11 h-11 flex items-center justify-center font-bold shadow-[0_0_15px_rgba(0,0,0,0.8)] border border-slate-500">X</button>
             <div
                 class="w-max min-w-full mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 flex flex-col mt-12 mb-12">
                 <h2
@@ -535,7 +535,7 @@
             <div
                 class="w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-continent-dist" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-2 text-center text-indigo-400 uppercase px-10">Preencher Vagas Extras</h2>
                 <p class="text-slate-400 text-center mb-6 text-sm">Quantos clubes NPCs de cada continente devem ser chamados?</p>
 
@@ -573,11 +573,11 @@
             <div id="confetti-layer" class="pointer-events-none"></div>
             <div class="relative z-[2] w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-10 border border-yellow-500/40 shadow-[0_0_60px_rgba(250,204,21,0.15)] mt-4 mb-4 text-center">
                 <button data-close="modal-champion" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <div class="text-7xl md:text-8xl trophy">🏆</div>
                 <p class="text-yellow-400 font-black uppercase tracking-[0.3em] text-xs mt-4">Campeão do Mundial</p>
                 <div class="flex flex-col items-center mt-4">
-                    <img id="champ-logo" src="" alt="" class="tm-logo-lg w-28 h-28">
+                    <img id="champ-logo" src="" alt="" class="tm-logo-lg w-28 h-28 bg-white/10 rounded-full p-2">
                     <h2 id="champ-name" class="text-3xl md:text-5xl font-black mt-3 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">—</h2>
                     <p id="champ-note" class="text-slate-300 mt-2"></p>
                     <p id="champ-user-msg" class="hidden mt-3 font-black text-emerald-400 text-lg"></p>
@@ -608,7 +608,7 @@
         <div id="modal-stats" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-4xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-stats" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-6 text-center text-cyan-400 px-10">Estatísticas do Torneio</h2>
                 <div id="stats-content"></div>
             </div>
@@ -625,7 +625,7 @@
                     </div>
                     <p class="sm:hidden flex-1 text-[10px] uppercase tracking-widest text-slate-500 font-bold">Plantão da rodada</p>
                     <button id="tk-fast" type="button" aria-pressed="false" class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-slate-800 border border-slate-600 text-xs font-black">2x</button>
-                    <button id="tk-skip" type="button" class="min-h-[44px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-black text-sm">Pular ▶▶</button>
+                    <button id="tk-skip" type="button" data-autofocus class="min-h-[44px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-black text-sm">Pular ▶▶</button>
                 </div>
                 <div id="tk-list" class="flex flex-col gap-1.5"></div>
                 <p id="tk-more" class="hidden text-center text-xs text-slate-500 mt-2"></p>
@@ -637,7 +637,7 @@
         <div id="modal-settings" class="hidden fixed inset-0 bg-black/95 z-[86] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-settings" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl font-black mb-4 text-center text-slate-200 px-10">Preferências</h2>
                 <div id="settings-rows" class="flex flex-col gap-2"></div>
                 <div class="mt-5 bg-slate-900/60 border border-slate-700 rounded-xl p-4">
@@ -662,7 +662,7 @@
         <div id="modal-odds" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-4xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-odds" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-violet-300 px-10">Probabilidades do Torneio</h2>
                 <p id="odds-sub" class="text-center text-slate-400 text-xs mb-4"></p>
                 <div id="odds-tabs" role="tablist" class="flex justify-center gap-2 mb-4"></div>
@@ -675,7 +675,7 @@
         <div id="modal-hall" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-3xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-amber-500/30 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-hall" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-amber-300 px-10">🏛️ Galeria de Campeões</h2>
                 <p class="text-center text-slate-400 text-xs mb-4">Títulos conquistados nas suas simulações neste navegador, não são títulos reais.</p>
                 <div id="hall-tabs" role="tablist" aria-label="Galeria" class="flex flex-wrap justify-center gap-2 mb-4"></div>
@@ -690,7 +690,7 @@
         <div id="modal-share" class="hidden fixed inset-0 bg-black/95 z-[89] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-share" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <h2 class="text-xl font-black mb-2 text-center px-10">Resumo do torneio</h2>
                 <p class="text-center text-slate-400 text-xs mb-3">Toque e segure para copiar.</p>
                 <textarea id="share-text" readonly rows="12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200"></textarea>
@@ -701,7 +701,7 @@
         <div id="modal-report" class="hidden fixed inset-0 bg-black/95 z-[88] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-lg mx-auto glass rounded-3xl p-5 md:p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-report" aria-label="Fechar"
-                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-10 h-10 flex items-center justify-center font-bold">X</button>
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <div id="report-content"></div>
             </div>
         </div>
@@ -712,7 +712,7 @@
                 <h3 id="confirm-title" class="text-xl font-black mb-2">Tem certeza?</h3>
                 <p id="confirm-text" class="text-slate-400 text-sm mb-6"></p>
                 <div class="flex justify-center gap-3">
-                    <button id="confirm-no" class="px-5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold">Cancelar</button>
+                    <button id="confirm-no" data-autofocus class="px-5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold">Cancelar</button>
                     <button id="confirm-yes" class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 font-black">Confirmar</button>
                 </div>
             </div>

@@ -123,7 +123,7 @@ function recordsTab(list: HofEntry[]): string {
   const all = list.flatMap(e => e.users.map(u => ({ ...u, diff: e.diff, at: e.at, fmt: e.fmt })))
     .filter(u => recDiff === 'all' || u.diff === recDiff)
     .sort((a, b) => b.sup - a.sup).slice(0, 10);
-  const chips = (['all', ...DIFF_ORDER] as const).map(d => `<button type="button" data-diff="${d}" aria-pressed="${recDiff === d}" class="min-h-[36px] px-3 rounded-full text-xs font-bold border ${recDiff === d ? 'bg-amber-600 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${d === 'all' ? 'Todos' : DIFF[d].label}</button>`).join('');
+  const chips = (['all', ...DIFF_ORDER] as const).map(d => `<button type="button" data-diff="${d}" aria-pressed="${recDiff === d}" class="min-h-[44px] px-3 rounded-full text-xs font-bold border ${recDiff === d ? 'bg-amber-600 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${d === 'all' ? 'Todos' : DIFF[d].label}</button>`).join('');
   const rows = all.length ? all.map((u, i) => `<div class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 rounded-lg px-3 py-2 min-w-0">
     <span class="w-5 text-slate-500 text-xs tabular-nums">${i + 1}</span>${logoImg(baseOf(u), 'w-6 h-6 object-contain shrink-0')}
     <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(u.name)} <span class="text-[10px] text-slate-500">OVR ${u.ovr}</span></p><p class="text-[11px] text-slate-400 truncate">${escapeHtml(u.label)} · ${dateBR(u.at)} · ${DIFF[u.diff]?.label ?? ''}</p></div>
@@ -148,7 +148,7 @@ function achTab(): string {
 function renderHall(): void {
   const list = hof().list;
   const tabs = $('hall-tabs');
-  tabs.innerHTML = TABS.map(([k, label]) => `<button type="button" role="tab" id="hall-tab-${k}" data-tab="${k}" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="min-h-[44px] px-3 rounded-lg text-sm font-bold border ${tab === k ? 'bg-amber-600 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${label}</button>`).join('');
+  tabs.innerHTML = TABS.map(([k, label]) => `<button type="button" role="tab" id="hall-tab-${k}" aria-controls="hall-content" data-tab="${k}" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="min-h-[44px] px-3 rounded-lg text-sm font-bold border ${tab === k ? 'bg-amber-600 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${label}</button>`).join('');
   const content = $('hall-content');
   content.setAttribute('role', 'tabpanel');
   content.setAttribute('aria-labelledby', 'hall-tab-' + tab);
@@ -156,10 +156,10 @@ function renderHall(): void {
   tabs.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(b => {
     b.onclick = () => { tab = b.dataset.tab as HallTab; renderHall(); $('hall-tab-' + tab).focus(); };
     b.onkeydown = e => {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
       e.preventDefault();
       const i = TABS.findIndex(([k]) => k === tab);
-      tab = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0];
+      tab = e.key === 'Home' ? TABS[0][0] : e.key === 'End' ? TABS[TABS.length - 1][0] : TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length][0];
       renderHall();
       $('hall-tab-' + tab).focus();
     };

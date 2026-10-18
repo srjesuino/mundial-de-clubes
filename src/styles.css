@@ -206,7 +206,8 @@ body {
     #match-events { min-height: 3rem; }
     #pen-board { margin-top: 4px; }
     #pen-board .pen-dot { width: 12px; height: 12px; font-size: 8px; }
-    #mg-sim-pens { position: fixed; right: calc(env(safe-area-inset-right, 0px) + 8px); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); margin: 0; }
+    /* canto de cima à esquerda: não cobre o resultado da cobrança nem a barra de tempo */
+    #mg-sim-pens { position: fixed; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 8px); margin: 0; padding: 6px 12px; }
 }
 
 /* Botões de ícone (som, preferências) e de postura: área de toque de 44px */
@@ -244,9 +245,22 @@ kbd {
 .pos-cell { width: 28px; height: 28px; min-width: 28px; border-radius: 4px; font-size: 9px; font-weight: 800; color: #ecfdf5; }
 .pos-cell:focus-visible { outline: 2px solid #fde047; }
 
+/* Escudos escuros (Juventus, Tottenham...) sobre o painel escuro da partida */
+#match-header .tm-logo-lg { background: rgba(255, 255, 255, 0.08); border-radius: 9999px; padding: 4px; }
+.mg-sim-short { display: none; }
+
 @media (max-height: 560px) {
     #wp-svg { height: 28px; }
     #wp-caption { display: none; }
+    /* celular deitado: escudos e rodapé compactos; o placar dos pênaltis em uma linha por time */
+    #match-header .tm-logo-lg { display: none; }
+    #match-footer { padding: 6px 10px; gap: 6px; }
+    #match-footer .icon-btn, #match-footer .tac-btn, #match-footer .speed-btn { min-height: 40px; }
+    #btn-skip-match, #btn-sim-pens, #btn-finish-match { padding-top: 8px; padding-bottom: 8px; }
+    #pen-board { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 14px; row-gap: 2px; }
+    #match-events { min-height: 4.5rem; }
+    .mg-sim-long { display: none; }
+    .mg-sim-short { display: inline; }
 }
 
 @media (prefers-reduced-motion: reduce) {

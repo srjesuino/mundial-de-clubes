@@ -13,6 +13,7 @@ import { initForecast } from './ui/forecast';
 import { initHall, recordTournamentEnd } from './ui/hall';
 import { onAfterAdvance } from './ui/hooks';
 import { initKeys } from './ui/keys';
+import { initOverlays } from './ui/overlays';
 import { initLive } from './ui/live';
 import { initReport } from './ui/report';
 import { openHistory, openAllGroups } from './ui/results';
@@ -39,6 +40,7 @@ initForecast();
 initHall(rematch);
 initChampion(confirmNewTournament);
 initKeys();
+initOverlays();
 
 $('btn-simulate-match').onclick = onSimulate;
 $('btn-play-match').onclick = onPlay;

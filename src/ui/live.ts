@@ -35,6 +35,8 @@ interface LiveState {
   paused: boolean;
   /** pausa das Preferências: segura o relógio sem mexer nas outras pausas */
   hold: boolean;
+  /** aba em segundo plano: o relógio espera a volta */
+  away: boolean;
   finished: boolean;
   et: boolean;
   pen: Shootout | null;
@@ -263,7 +265,7 @@ export function startLive(m: PlayableMatch, side: Side): void {
   if (L?.timer) clearInterval(L.timer);
   emit('liveStart');
   L = {
-    m, side, ctx: simContext(t, m), min: 0, endMin: 90, period: 'REG', hSc: 0, aSc: 0, paused: false, hold: false, finished: false, et: false,
+    m, side, ctx: simContext(t, m), min: 0, endMin: 90, period: 'REG', hSc: 0, aSc: 0, paused: false, hold: false, away: document.hidden, finished: false, et: false,
     pen: null, timer: undefined, token: {}, htPending: false, chance: null, kick: null,
     wp: [], penWp: [], misses: [], ch: { h: 0, a: 0 }, goals: [],
     mg: { att: 0, attG: 0, def: 0, defG: 0, penS: 0, penSG: 0, penD: 0, penDS: 0 },
@@ -277,6 +279,7 @@ export function startLive(m: PlayableMatch, side: Side): void {
   showEl('screen-match');
   hideEl('btn-finish-match');
   hideEl('btn-sim-pens');
+  showEl('btn-live-settings');
   setLiveControls(true);
   setSpeedButtons();
   renderTacButtons();
@@ -323,7 +326,7 @@ function halfTime(): void {
 }
 
 function liveTick(): void {
-  if (!L || L.paused || L.hold || L.finished) return;
+  if (!L || L.paused || L.hold || L.away || L.finished) return;
   if (L.min >= L.endMin) { onPeriodEnd(); return; }
   L.min++;
   renderClock();
@@ -364,8 +367,12 @@ function scoreGoal(isHome: boolean, minute: number): void {
   const before = currentSample().w;
   if (isHome) L.hSc++; else L.aSc++;
   L.goals.push([minute, isHome ? 0 : 1]);
+  const phrase = goalPhrase(isHome);
   if (L.hSc < L.aSc) L.trailed.home = true;
   if (L.aSc < L.hSc) L.trailed.away = true;
+  // passou à frente: uma nova virada só depois de voltar a ficar atrás
+  if (L.hSc > L.aSc) L.trailed.home = false;
+  if (L.aSc > L.hSc) L.trailed.away = false;
   const mine = userHome() ? L.hSc : L.aSc, theirs = userHome() ? L.aSc : L.hSc;
   L.maxDef = Math.max(L.maxDef, theirs - mine);
   renderScore();
@@ -373,7 +380,7 @@ function scoreGoal(isHome: boolean, minute: number): void {
   el.classList.remove('goal-scored'); void el.offsetWidth; el.classList.add('goal-scored');
   const scorer = team(t, isHome ? L.m.home : L.m.away);
   const userGoal = userHome() === isHome;
-  logEvent(userGoal ? 'goal' : 'goalAgainst', `GOL! ${scorer.name} ${goalPhrase(isHome)} (${L.hSc} x ${L.aSc})`, minute);
+  logEvent(userGoal ? 'goal' : 'goalAgainst', `GOL! ${scorer.name} ${phrase} (${L.hSc} x ${L.aSc})`, minute);
   // Zebra: quem lidera tem OVR 6+ abaixo do rival (o mesmo critério das estatísticas)
   const lead: Side | null = L.hSc > L.aSc ? 'home' : L.aSc > L.hSc ? 'away' : null;
   if (lead && lead !== L.upsetBy) {
@@ -514,7 +521,7 @@ function consequence(t: Tournament, m: PlayableMatch, me: string): { text: strin
   const last = t.knockout[t.knockout.length - 1];
   const M = last?.matches.length ?? 0;
   if (won) return M === 1 ? { text: '🏆 CAMPEÃO!', good: true } : { text: '✅ Classificado: ' + PHASE_LABEL[PHASE_BY_COUNT[M]], good: true };
-  return { text: '❌ Eliminado: ' + m.stage, good: false };
+  return M === 1 ? { text: 'Vice-campeão', good: false } : { text: '❌ Eliminado: ' + m.stage, good: false };
 }
 
 /** Ficha do jogo: chances, gols, seus lances nos minigames, o gráfico congelado e o momento decisivo */
@@ -563,6 +570,7 @@ function finishLive(): void {
   renderPenBoard();
   hideEl('btn-sim-pens');
   setLiveControls(false);
+  showEl('btn-live-settings');
   hideEl('prancheta');
   sfx.finalWhistle();
   sfx.stopBed(1500);
@@ -623,6 +631,7 @@ function startLiveShootout(): void {
   logEvent('big', 'DISPUTA DE PÊNALTIS!');
   logEvent('info', `${first.name} começa batendo (cara ou coroa).`);
   setLiveControls(false);
+  hideEl('btn-live-settings');
   showEl('btn-sim-pens');
   sfx.crowd(0.08, 1500);
   renderPenBoard();
@@ -633,7 +642,7 @@ function startLiveShootout(): void {
   persistLive();
   shieldClicks(700);
   const tok = L.token;
-  window.setTimeout(() => { if (L && L.token === tok) nextLiveKick(); }, 1400);
+  window.setTimeout(() => { if (L && L.token === tok) whenVisible(nextLiveKick); }, 1400);
 }
 
 function nextLiveKick(): void {
@@ -669,7 +678,7 @@ function nextLiveKick(): void {
   setMinigameOnClose(() => {
     if (!L || L.token !== tok) return;
     const over = shootoutOver(P);
-    window.setTimeout(() => { if (L && L.token === tok) { if (over) finishLive(); else nextLiveKick(); } }, over ? 500 : 700);
+    window.setTimeout(() => { if (L && L.token === tok) { if (over) finishLive(); else whenVisible(nextLiveKick); } }, over ? 500 : 700);
   });
 }
 
@@ -689,6 +698,18 @@ function simulateRemainingPens(): void {
     sample();
   }
   finishLive();
+}
+
+/** Com a aba em segundo plano, a próxima cobrança só abre quando o jogador voltar */
+function whenVisible(fn: () => void): void {
+  if (!document.hidden) { fn(); return; }
+  const tok = L?.token;
+  const back = () => {
+    if (document.hidden) return;
+    document.removeEventListener('visibilitychange', back);
+    if (L && L.token === tok) fn();
+  };
+  document.addEventListener('visibilitychange', back);
 }
 
 // ---------- Preferências e teclado ----------
@@ -724,5 +745,6 @@ export function initLive(): void {
   $('btn-sim-pens').onclick = simulateRemainingPens;
   $('mg-sim-pens').onclick = simulateRemainingPens;
   window.addEventListener('pagehide', persistLive);
+  document.addEventListener('visibilitychange', () => { if (L && !L.finished) L.away = document.hidden; });
   setSpeedButtons();
 }

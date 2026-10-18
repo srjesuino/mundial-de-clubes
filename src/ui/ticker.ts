@@ -36,7 +36,7 @@ function rowHtml(r: Row, t: Tournament): string {
     <div class="flex items-center gap-1.5 justify-end flex-1 min-w-0"><span class="tk-name-h truncate">${escapeHtml(H.name)}</span>${logoImg(H, 'w-5 h-5 object-contain shrink-0')}</div>
     <div class="shrink-0 w-[4.5rem] text-center"><span class="tk-score font-black tabular-nums text-white">0 - 0</span><div class="tk-sub text-[9px] text-slate-500 leading-tight"></div></div>
     <div class="flex items-center gap-1.5 flex-1 min-w-0">${logoImg(A, 'w-5 h-5 object-contain shrink-0')}<span class="tk-name-a truncate">${escapeHtml(A.name)}</span></div>
-    <span class="tk-chip-slot absolute -top-2 left-1/2 -translate-x-1/2"></span>
+    <span class="tk-chip-slot absolute -top-2.5 right-2"></span>
   </div>`;
 }
 
