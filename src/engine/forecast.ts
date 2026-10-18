@@ -30,11 +30,17 @@ function columns(t: Tournament): Col[] {
 
 export const forecastColumns = (t: Tournament): string[] => columns(t).map(c => c.label);
 
-/** Progresso do torneio (sem a postura): muda a cada jogo disputado, rodada ou sorteio */
+/** Progresso do torneio (sem a postura): muda a cada jogo disputado, rodada, fase ou sorteio */
 export function progressKey(t: Tournament): string {
-  return [t.phase, playedMatches(t).length, t.swissRounds.length, t.knockout.length, t.bracket ? t.bracket.round : 0,
+  return [t.phase, t.round, playedMatches(t).length, t.swissRounds.length, t.knockout.length, t.bracket ? t.bracket.round : 0,
     t.draw ? `${t.draw.revealed}/${t.draw.pairs.length}` : '-'].join('|');
 }
+
+/**
+ * Chave do histórico da chance de título: só os resultados conhecidos. "Rodada encerrada" e "próxima rodada"
+ * têm os mesmos resultados e ficam numa entrada só (a seta ▲▼ compara resultados diferentes, não ruído).
+ */
+export const resultsKey = (t: Tournament): string => String(playedMatches(t).length);
 
 /** Chave da previsão: progresso + posturas escolhidas para os jogos do usuário ainda não disputados da rodada */
 export function forecastKey(t: Tournament): string {
@@ -54,13 +60,13 @@ export const runCountFor = (msPerRun: number): number => clamp(Math.floor(3000 /
 /**
  * Classificação/eliminação matemática na fase de grupos (condições suficientes, nunca erradas):
  * 'in' se no máximo k−1 rivais ainda podem alcançar os pontos do clube; 'out' se k rivais já estão fora de alcance.
+ * k = vagas do grupo (ou outra faixa, como o Top 4 dos pontos corridos).
  */
-export function clinchStatus(t: Tournament, id: string): 'in' | 'out' | null {
+export function clinchStatus(t: Tournament, id: string, k = t.config.advancingPerGroup): 'in' | 'out' | null {
   if (t.phase !== 'GROUP') return null;
   const x = t.teams[id];
   const g = x?.group;
-  if (!g || !t.groups[g]) return null;
-  const k = t.config.advancingPerGroup;
+  if (!g || !t.groups[g] || k >= t.groups[g].length) return null;
   const ms = t.schedule[g].flat();
   const rem = (j: string) => ms.filter(m => !m.played && (m.home === j || m.away === j)).length;
   const others = t.groups[g].filter(j => j !== id);
@@ -71,15 +77,14 @@ export function clinchStatus(t: Tournament, id: string): 'in' | 'out' | null {
   return null;
 }
 
-interface Decided { dead: Set<string>; got: Record<string, number> }
-
-/** Quem já garantiu cada etapa e quem já está fora, lido do estado (avançando a rodada se ela terminou) */
-function decided(t: Tournament, cols: Col[]): Decided {
+/** O que já está decidido para cada clube e coluna, lido do estado (avançando a rodada se ela terminou) */
+function decided(t: Tournament, cols: Col[]): Record<string, string> {
   const D: Tournament = JSON.parse(JSON.stringify(t, (k, v) => (k === 'mc' || k === 'mcLog' ? undefined : v)));
   D.live = null;
   if (D.phase !== 'END' && !D.draw && roundComplete(D)) advance(D);
   const ids = Object.keys(D.teams);
-  const dead = new Set(ids.filter(id => D.teams[id].out !== null && D.champion !== id));
+  const league = isLeague(t);
+  const out = (id: string) => D.teams[id].out !== null && D.champion !== id;
   const inStage = (k: number): Set<string> => {
     const s = new Set<string>();
     D.knockout[k]?.matches.forEach(m => { s.add(m.home); s.add(m.away); });
@@ -93,28 +98,32 @@ function decided(t: Tournament, cols: Col[]): Decided {
   ids.forEach(id => { if (D.teams[id].status === 'advanced') qual.add(id); });
   const gf = new Set<string>();
   D.bracket?.nodes.filter(n => n.isGF1).forEach(n => { if (n.home) gf.add(n.home); if (n.away) gf.add(n.away); });
-  // matemática dos pontos na fase de grupos (no estado real, antes do avanço)
-  if (t.phase === 'GROUP' && !isLeague(t)) {
-    ids.forEach(id => {
-      const c = clinchStatus(t, id);
-      if (c === 'in') qual.add(id);
-      else if (c === 'out') dead.add(id);
-    });
-  }
-  const reached = (id: string, c: Col): boolean => {
-    if (c.kind === 'title') return D.champion === id;
-    if (c.kind === 'qual') return qual.has(id);
-    if (c.kind === 'gf') return gf.has(id) || D.champion === id;
-    if (c.kind === 'ko') return inStage(c.k!).has(id);
-    return false;
+  // Pontos corridos: posição final quando acabou; antes disso, a matemática dos pontos (título e Top 4)
+  const leagueOrder = league && D.phase === 'END' ? sortGroupIds(D, Object.keys(D.groups)[0]) : null;
+  const leagueMark = (id: string, k: number): string => {
+    if (leagueOrder) return leagueOrder.indexOf(id) < k ? '1' : '0';
+    const c = clinchStatus(t, id, k);
+    return c === 'in' ? '1' : c === 'out' ? '0' : '.';
   };
-  const got: Record<string, number> = {};
+  const groupClinch = (id: string) => (t.phase === 'GROUP' && !league ? clinchStatus(t, id) : null);
+  const mark = (id: string, c: Col): string => {
+    if (league) return c.kind === 'title' ? leagueMark(id, 1) : c.kind === 'top4' ? leagueMark(id, 4) : '.';
+    const gc = groupClinch(id);
+    let reached = false;
+    if (c.kind === 'title') reached = D.champion === id;
+    else if (c.kind === 'qual') reached = qual.has(id) || gc === 'in';
+    else if (c.kind === 'gf') reached = gf.has(id) || D.champion === id;
+    else if (c.kind === 'ko') reached = inStage(c.k!).has(id);
+    if (reached) return '1';
+    if (out(id) || gc === 'out') return '0';
+    return '.';
+  };
+  const known: Record<string, string> = {};
   ids.forEach(id => {
-    let n = 0;
-    while (n < cols.length && reached(id, cols[n])) n++;
-    if (n) got[id] = n;
+    const row = cols.map(c => mark(id, c)).join('');
+    if (/[01]/.test(row)) known[id] = row;
   });
-  return { dead, got };
+  return known;
 }
 
 // ---------- Simulações ----------
@@ -226,8 +235,7 @@ export function forecastJob(t: Tournament, n?: number, now: () => number = () =>
         posOut[g] = {};
         Object.keys(pos[g]).forEach(id => { posOut[g][id] = pos[g][id].map(v => Math.round((v / N) * 1e4) / 1e4); });
       });
-      const d = decided(t, cols);
-      return { key: job.key, n: job.done, label: roundTitle(t), cols: cols.map(c => c.label), p, cond, pos: posOut, dead: [...d.dead], got: d.got };
+      return { key: job.key, n: job.done, label: roundTitle(t), cols: cols.map(c => c.label), p, cond, pos: posOut, known: decided(t, cols) };
     }
   };
   return job;
@@ -245,7 +253,7 @@ export function storeForecast(t: Tournament, f: Forecast): void {
   t.mc = f;
   const ti = f.cols.indexOf('Título');
   const entry: ForecastLogEntry = {
-    k: progressKey(t),
+    k: resultsKey(t),
     label: f.label,
     n: f.n,
     t: Object.fromEntries(t.userIds.map(id => [id, ti >= 0 ? (f.p[id]?.[ti] ?? 0) : 0]))
@@ -259,13 +267,12 @@ export function storeForecast(t: Tournament, f: Forecast): void {
 /** Como mostrar uma probabilidade da tabela: decidido (✓/—), estimado com 1 casa, ou os limites '<0,1%'/'>99,9%' */
 export function formatChance(f: Forecast, id: string, col: number): { text: string; sure: boolean; p: number } {
   const p = f.p[id]?.[col] ?? 0;
-  if ((f.got[id] ?? 0) > col) return { text: '✓', sure: true, p: 1 };
-  if (f.dead.includes(id)) return { text: '—', sure: true, p: 0 };
-  if (p <= 0) return { text: '<0,1%', sure: false, p };
-  if (p >= 1) return { text: '>99,9%', sure: false, p };
+  const k = f.known?.[id]?.[col];
+  if (k === '1') return { text: '✓', sure: true, p: 1 };
+  if (k === '0') return { text: '—', sure: true, p: 0 };
   const v = Math.round(p * 1000) / 10;
-  if (v <= 0) return { text: '<0,1%', sure: false, p };
-  if (v >= 100) return { text: '>99,9%', sure: false, p };
+  if (p <= 0 || v <= 0) return { text: '<0,1%', sure: false, p };
+  if (p >= 1 || v >= 100) return { text: '>99,9%', sure: false, p };
   return { text: v.toFixed(1).replace('.', ',') + '%', sure: false, p };
 }
 

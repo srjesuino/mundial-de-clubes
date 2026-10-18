@@ -180,14 +180,15 @@ export interface Forecast {
   cond: Record<string, Partial<Record<'V' | 'E' | 'D', [number, number]>>>;
   /** posições finais no grupo: grupo → clube → probabilidade de cada posição */
   pos: Record<string, Record<string, number[]>>;
-  /** clubes já sem chance de nada (decidido, não estimado) */
-  dead: string[];
-  /** quantas das primeiras colunas o clube já garantiu (decidido, não estimado) */
-  got: Record<string, number>;
+  /**
+   * O que já está decidido (não estimado), uma letra por coluna: '1' garantido, '0' impossível, '.' em aberto.
+   * Clubes sem nada decidido ficam de fora.
+   */
+  known: Record<string, string>;
 }
 
 export interface ForecastLogEntry {
-  /** progresso do torneio (sem a postura): uma entrada por rodada */
+  /** resultados conhecidos (jogos disputados): uma entrada por conjunto de resultados */
   k: string;
   label: string;
   n: number;

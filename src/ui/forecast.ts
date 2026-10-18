@@ -70,6 +70,8 @@ function chunk(): void {
 
 // ---------- Painel ----------
 const titleCol = (f: Forecast) => f.cols.indexOf('Título');
+/** A previsão guardada não corresponde mais ao estado e uma nova vai ser calculada */
+const pending = (t: Tournament): boolean => canForecast(t) && (!t.mc || t.mc.key !== forecastKey(t));
 
 function sparkline(t: Tournament, id: string): string {
   const pts = (t.mcLog ?? []).map(e => e.t[id]).filter((v): v is number => typeof v === 'number');
@@ -112,8 +114,7 @@ function renderDashMc(): void {
     if (d >= 0.1) delta = `<span class="text-emerald-400">▲${fmtBR(d, 1)}</span>`;
     else if (d <= -0.1) delta = `<span class="text-red-400">▼${fmtBR(-d, 1)}</span>`;
   }
-  const stale = f.key !== forecastKey(t);
-  const note = t.draw ? ' <span class="text-slate-500">(antes do sorteio)</span>' : stale && job ? ' <span class="text-slate-500">(atualizando…)</span>' : '';
+  const note = t.draw ? ' <span class="text-slate-500">(antes do sorteio)</span>' : pending(t) ? ' <span class="text-slate-500">(atualizando…)</span>' : '';
   el.innerHTML = `<span class="min-w-0"><span class="text-slate-400">Chance de título</span> <b class="text-white tabular-nums">${c.text}</b> ${delta}${note}</span>${sparkline(t, id)}`;
   el.setAttribute('aria-label', `Chance de título ${c.text}. Abrir as probabilidades do torneio`);
   showEl(el);
@@ -145,7 +146,7 @@ function renderScenarios(): void {
     if (m.kind === 'group') parts.push(`empatar: <b>${cell('E')}</b>`);
     parts.push(`perder: <b>${cell('D')}</b>`);
     line = `<p>${parts.join(' · ')}</p>`;
-  } else if (m && job) line = '<p class="text-slate-500">Calculando os cenários do próximo jogo…</p>';
+  } else if (m && pending(t)) line = '<p class="text-slate-500">Calculando os cenários do próximo jogo…</p>';
   el.innerHTML = badge + line;
   setHidden(el, !badge && !line);
 }
@@ -180,7 +181,7 @@ function renderOdds(): void {
     content.innerHTML = `<p class="text-center text-slate-400 py-8">${t.draw ? 'Disponível depois do sorteio.' : t.phase === 'END' ? 'Torneio encerrado.' : job ? `Calculando… ${fmtBR(job.done)}/${fmtBR(job.total)} simulações` : 'Calculando…'}</p>`;
     return;
   }
-  sub.textContent = `${fmtBR(f.n)} simulações · ${f.label}${t.draw ? ' · antes do sorteio' : f.key !== forecastKey(t) ? ' · atualizando…' : ''}`;
+  sub.textContent = `${fmtBR(f.n)} simulações · ${f.label}${t.phase === 'END' ? ' · última previsão antes do fim do torneio' : t.draw ? ' · antes do sorteio' : pending(t) ? ' · atualizando…' : ''}`;
   const hasPos = Object.keys(f.pos).length > 0 && t.phase === 'GROUP';
   if (!hasPos) oddsTab = 'torneio';
   tabs.innerHTML = hasPos
@@ -192,7 +193,11 @@ function renderOdds(): void {
   const ti = titleCol(f);
   const ids = Object.keys(t.teams).sort((a, b) => {
     if (ti >= 0) { const d = (f.p[b]?.[ti] ?? 0) - (f.p[a]?.[ti] ?? 0); if (d) return d; }
-    for (let c = 0; c < f.cols.length; c++) { if (f.cols[c] === 'Posição média') continue; const d = (f.p[b]?.[c] ?? 0) - (f.p[a]?.[c] ?? 0); if (d) return d; }
+    for (let c = 0; c < f.cols.length; c++) {
+      // posição média: menor é melhor
+      const d = f.cols[c] === 'Posição média' ? (f.p[a]?.[c] ?? 0) - (f.p[b]?.[c] ?? 0) : (f.p[b]?.[c] ?? 0) - (f.p[a]?.[c] ?? 0);
+      if (d) return d;
+    }
     return team(t, b).ovr - team(t, a).ovr;
   });
   content.innerHTML = `<div class="table-scroll scrollbar-thin"><table class="w-full text-xs md:text-sm border-collapse min-w-[420px]">
@@ -223,6 +228,8 @@ function renderPositions(t: Tournament, f: Forecast): void {
   const n = ids.length;
   const k = t.config.advancingPerGroup;
   const content = $('odds-content');
+  // grupo com todos os jogos disputados: posições exatas; senão, estimativas nunca viram 0% ou 100%
+  const closed = t.schedule[g].flat().every(m => m.played);
   content.innerHTML = `<div class="flex justify-center mb-3"><select id="pos-group" aria-label="Grupo" class="px-3 py-2 min-h-[44px] rounded-lg bg-slate-800 border border-slate-600 text-white">${groups.map(x => `<option value="${x}" ${x === g ? 'selected' : ''}>Grupo ${x}</option>`).join('')}</select></div>
     <div class="table-scroll scrollbar-thin ${n > 8 ? 'max-h-[60vh] overflow-y-auto' : ''}"><table class="border-collapse text-xs mx-auto">
     <thead><tr class="text-slate-400"><th class="sticky-col bg-slate-800 text-left pl-2 py-1">Clube</th>${ids.map((_, i) => `<th class="px-0.5 py-1 font-semibold ${i < k ? 'text-emerald-400' : ''}">${i + 1}º</th>`).join('')}</tr></thead>
@@ -230,7 +237,8 @@ function renderPositions(t: Tournament, f: Forecast): void {
       const x = team(t, id);
       const row = f.pos[g][id] ?? [];
       return `<tr><td class="sticky-col bg-slate-800 pl-2 pr-2 py-0.5 ${isUser(t, id) ? 'text-emerald-300 font-bold' : 'text-slate-200'}"><div class="flex items-center gap-1.5 whitespace-nowrap max-w-[9rem]">${logoImg(x, 'w-4 h-4 object-contain shrink-0')}<span class="truncate">${escapeHtml(x.name)}</span></div></td>${row.map((p, i) => {
-        const txt = p <= 0 ? '0%' : p >= 1 ? '100%' : fmtBR(Math.round(p * 1000) / 10, 1) + '%';
+        const v = Math.round(p * 1000) / 10;
+        const txt = closed ? Math.round(p * 100) + '%' : p <= 0 || v <= 0 ? '<0,1%' : p >= 1 || v >= 100 ? '>99,9%' : fmtBR(v, 1) + '%';
         return `<td class="px-0.5 py-0.5"><button type="button" class="pos-cell ${i < k ? 'ring-1 ring-emerald-500/60' : ''}" style="background:rgba(16,185,129,${(0.08 + p * 0.85).toFixed(2)})" aria-label="${escapeHtml(x.name)}: ${i + 1}º lugar em ${txt} das simulações" title="${txt}" data-short="${p >= 0.005 ? Math.round(p * 100) : ''}">${p >= 0.005 ? Math.round(p * 100) : ''}</button></td>`;
       }).join('')}</tr>`;
     }).join('')}</tbody></table></div>
@@ -258,5 +266,5 @@ export function initForecast(): void {
   on('advance', mcSchedule);
   on('liveStart', () => { cancel(); });
   on('newTournament', () => { cancel(); clearTimeout(debounce); });
-  document.addEventListener('mc64:tactic', () => { renderScenarios(); mcSchedule(); });
+  document.addEventListener('mc64:tactic', () => { renderDashMc(); renderScenarios(); mcSchedule(); });
 }

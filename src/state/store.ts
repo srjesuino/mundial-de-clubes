@@ -37,13 +37,38 @@ export function validSave(s: unknown): s is Tournament {
   return true;
 }
 
+const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+const isNumArr = (x: unknown): boolean => Array.isArray(x) && x.every(isNum);
+
+/** Previsão guardada válida no formato atual (senão é descartada e recalculada) */
+function validForecast(mc: unknown): boolean {
+  if (!isObj(mc)) return false;
+  const { key, n, label, cols, p, cond, pos, known } = mc;
+  if (typeof key !== 'string' || !isNum(n) || typeof label !== 'string') return false;
+  if (!Array.isArray(cols) || !cols.every(c => typeof c === 'string')) return false;
+  if (!isObj(p) || !Object.values(p).every(r => isNumArr(r) && (r as number[]).length === cols.length)) return false;
+  if (!isObj(cond) || !Object.values(cond).every(c => isObj(c) && Object.values(c).every(v => isNumArr(v) && (v as number[]).length === 2))) return false;
+  if (!isObj(pos) || !Object.values(pos).every(g => isObj(g) && Object.values(g).every(isNumArr))) return false;
+  if (!isObj(known) || !Object.values(known).every(k => typeof k === 'string' && k.length === cols.length)) return false;
+  return true;
+}
+
+const validLogEntry = (e: unknown): boolean =>
+  isObj(e) && typeof e.k === 'string' && typeof e.label === 'string' && isNum(e.n) && isObj(e.t) && Object.values(e.t).every(isNum);
+
+const validSkill = (s: unknown): boolean =>
+  isObj(s) && (['att', 'def', 'penS', 'penD'] as const).every(k => isObj(s[k]) && isNum((s[k] as Record<string, unknown>).n) && isNum((s[k] as Record<string, unknown>).g));
+
 /** Campos opcionais (previsão, recordes) malformados são descartados em vez de invalidar o torneio */
-function sanitize(s: Tournament): Tournament {
+export function sanitize(s: Tournament): Tournament {
   const o = s as unknown as Record<string, unknown>;
-  if (o.mc !== undefined && !(isObj(o.mc) && Array.isArray((o.mc as Record<string, unknown>).cols) && isObj((o.mc as Record<string, unknown>).p))) delete o.mc;
-  if (o.mcLog !== undefined && !Array.isArray(o.mcLog)) delete o.mcLog;
-  if (o.diffUsed !== undefined && !Array.isArray(o.diffUsed)) delete o.diffUsed;
-  if (o.skill !== undefined && !isObj(o.skill)) delete o.skill;
+  if (o.mc !== undefined && !validForecast(o.mc)) delete o.mc;
+  if (o.mcLog !== undefined) {
+    if (!Array.isArray(o.mcLog)) delete o.mcLog;
+    else o.mcLog = o.mcLog.filter(validLogEntry);
+  }
+  if (o.diffUsed !== undefined && !(Array.isArray(o.diffUsed) && o.diffUsed.every(d => ['facil', 'normal', 'dificil', 'lenda'].includes(d as string)))) delete o.diffUsed;
+  if (o.skill !== undefined && !validSkill(o.skill)) delete o.skill;
   return s;
 }
 

@@ -33,9 +33,9 @@ export const tickerOpen = (): boolean => !!run && isShown('round-ticker');
 function rowHtml(r: Row, t: Tournament): string {
   const H = team(t, r.m.home), A = team(t, r.m.away);
   return `<div data-mid="${r.m.id}" class="tk-row relative flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs sm:text-sm ${r.hl ? 'bg-emerald-900/25 border border-emerald-500/40' : 'bg-slate-900/60 border border-slate-700/50'}">
-    <div class="flex items-center gap-1.5 justify-end flex-1 min-w-0"><span class="truncate">${escapeHtml(H.name)}</span>${logoImg(H, 'w-5 h-5 object-contain shrink-0')}</div>
+    <div class="flex items-center gap-1.5 justify-end flex-1 min-w-0"><span class="tk-name-h truncate">${escapeHtml(H.name)}</span>${logoImg(H, 'w-5 h-5 object-contain shrink-0')}</div>
     <div class="shrink-0 w-[4.5rem] text-center"><span class="tk-score font-black tabular-nums text-white">0 - 0</span><div class="tk-sub text-[9px] text-slate-500 leading-tight"></div></div>
-    <div class="flex items-center gap-1.5 flex-1 min-w-0">${logoImg(A, 'w-5 h-5 object-contain shrink-0')}<span class="truncate">${escapeHtml(A.name)}</span></div>
+    <div class="flex items-center gap-1.5 flex-1 min-w-0">${logoImg(A, 'w-5 h-5 object-contain shrink-0')}<span class="tk-name-a truncate">${escapeHtml(A.name)}</span></div>
     <span class="tk-chip-slot absolute -top-2 left-1/2 -translate-x-1/2"></span>
   </div>`;
 }
@@ -147,7 +147,11 @@ function swissOrKoBadges(t: Tournament, rows: Row[]): void {
       const tag = (x: typeof W) => (x.status === 'advanced' ? `✅ ${x.sw}-${x.sl}` : x.status === 'eliminated' ? `❌ ${x.sw}-${x.sl}` : `${x.sw}-${x.sl}`);
       sub.textContent = `${finalLabel(r)} · ${tag(w === r.m.home ? W : Lo)} | ${tag(w === r.m.home ? Lo : W)}`;
     } else {
-      sub.textContent = `${finalLabel(r)} · avança ${team(t, w).name.split(' ')[0]}`;
+      // o vencedor fica destacado no próprio nome (o primeiro nome sozinho pode ser ambíguo: Manchester, Atlético...)
+      sub.textContent = finalLabel(r);
+      const el = r.el.querySelector(w === r.m.home ? '.tk-name-h' : '.tk-name-a');
+      el?.classList.add('text-emerald-400', 'font-bold');
+      el?.setAttribute('aria-label', `${team(t, w).name}, avança`);
     }
   });
 }

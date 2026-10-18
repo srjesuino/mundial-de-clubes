@@ -66,10 +66,14 @@ describe('previsão do torneio (Monte Carlo)', () => {
     Object.keys(t.teams).forEach(id => f.cols.forEach((_, ci) => {
       const c = formatChance(f, id, ci);
       if (!c.sure) { expect(c.text).not.toBe('0,0%'); expect(c.text).not.toBe('100,0%'); }
-      if (c.text === '—') expect(f.dead).toContain(id);
+      if (c.text === '—') expect(f.known[id][ci]).toBe('0');
     }));
-    // quem a matemática já elimina está marcado como fora
-    Object.keys(t.teams).forEach(id => { if (clinchStatus(t, id) === 'out') expect(f.dead).toContain(id); });
+    // quem a matemática já elimina está marcado como fora; quem já garantiu, como garantido
+    Object.keys(t.teams).forEach(id => {
+      const c = clinchStatus(t, id);
+      if (c === 'out') expect(f.known[id]).toMatch(/^0+$/);
+      if (c === 'in') expect(f.known[id][0]).toBe('1');
+    });
   });
 
   it('o número de simulações se ajusta ao aparelho', () => {
@@ -199,5 +203,49 @@ describe('dificuldade dos minigames', () => {
     setSeed(1);
     const hit = (learn: number) => { let n = 0; for (let i = 0; i < 20000; i++) if (keeperGuess([0, 0, 0], learn) === 0) n++; return n / 20000; };
     expect(hit(DIFF.lenda.learn)).toBeGreaterThan(hit(DIFF.facil.learn) + 0.1);
+  });
+});
+
+describe('correções da previsão (revisão)', () => {
+  it('a chave muda de "rodada encerrada" para "próxima rodada" (os cenários são recalculados)', async () => {
+    const { forecastKey, resultsKey } = await import('../../src/engine/forecast');
+    setSeed(31);
+    const t = createTournament(cfg({}), someUsers(1));
+    simulateRound(t);
+    const k1 = forecastKey(t), r1 = resultsKey(t);
+    advance(t);
+    expect(forecastKey(t)).not.toBe(k1);
+    expect(resultsKey(t)).toBe(r1); // mesmos resultados: uma entrada só no histórico
+    const f = runForecast(t, 200);
+    expect(Object.keys(f.cond)).toContain(t.userIds[0]);
+  });
+
+  it('pontos corridos encerrados: Top 4 e título decididos, sem "—" para quem ficou entre os 4', () => {
+    setSeed(12);
+    const t = createTournament(cfg({ groupsCount: 1, teamsPerGroup: 6, advancingPerGroup: 1, groupLegs: 1 }), someUsers(1));
+    while (!(t.round === 4 && t.phase === 'GROUP')) { simulateRound(t); advance(t); }
+    simulateRound(t); // última rodada disputada, ainda sem avançar
+    const f = runForecast(t, 100);
+    const order = Object.keys(t.teams).sort((a, b) => f.p[a][2] - f.p[b][2]);
+    order.forEach((id, i) => {
+      expect(formatChance(f, id, 0).text).toBe(i === 0 ? '✓' : '—');
+      expect(formatChance(f, id, 1).text).toBe(i < 4 ? '✓' : '—');
+    });
+  });
+
+  it('save com previsão de formato antigo ou quebrada: descarta só a previsão', async () => {
+    const { sanitize, validSave } = await import('../../src/state/store');
+    setSeed(2);
+    const t = createTournament(cfg({}), someUsers(1));
+    const broken = JSON.parse(JSON.stringify(t));
+    broken.mc = { key: 'x', n: 10, label: 'y', cols: ['Título'], p: { a: [0.1] }, cond: {}, pos: {}, dead: [], got: {} };
+    broken.mcLog = [{ k: '0', label: 'a', n: 1, t: { a: 0.1 } }, { label: 'sem t' }];
+    expect(validSave(broken)).toBe(true);
+    const s = sanitize(broken);
+    expect(s.mc).toBeUndefined();
+    expect(s.mcLog).toHaveLength(1);
+    const good = JSON.parse(JSON.stringify(t));
+    good.mc = runForecast(t, 50);
+    expect(sanitize(good).mc).toBeDefined();
   });
 });
