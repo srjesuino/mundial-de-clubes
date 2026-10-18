@@ -10,7 +10,7 @@ import {
 import { poisson, rand } from '../engine/rng';
 import type { DENode, LiveRecord, MatchResult, PlayableMatch, Shootout, Side, Tactic, Tournament } from '../engine/types';
 import { prefs, savePrefs } from '../state/prefs';
-import { T, saveGame } from '../state/store';
+import { T, isStale, saveGame, store } from '../state/store';
 import { grantAch } from './ach';
 import { logoImg, setLogo } from './crest';
 import { $, escapeHtml, hideEl, isShown, setHidden, shieldClicks, shielded, showEl, srSay } from './dom';
@@ -708,18 +708,21 @@ function simulateRemainingPens(): void {
 // Uma aba que vai continuar o torneio pergunta se a partida salva está sendo jogada agora em outra aba.
 const tabs: BroadcastChannel | null = (() => { try { return new BroadcastChannel('mundial64-live'); } catch { return null; } })();
 tabs?.addEventListener('message', e => {
-  if (e.data?.type === 'who-plays' && L && !L.finished && L.m.id === e.data.id) tabs.postMessage({ type: 'playing', id: L.m.id });
+  const d = e.data;
+  if (d?.type !== 'who-plays' || !L || L.finished || isStale() || L.m.id !== d.id) return;
+  if (d.tid && store.t?.tid !== d.tid) return; // mesmo id de partida, outro torneio
+  tabs.postMessage({ type: 'playing', id: L.m.id });
 });
 
 /** true se outra aba responde que está jogando essa partida (espera até 300 ms) */
-export function liveElsewhere(matchId: string): Promise<boolean> {
+export function liveElsewhere(matchId: string, tid?: string): Promise<boolean> {
   if (!tabs) return Promise.resolve(false);
   return new Promise(resolve => {
     const onMsg = (e: MessageEvent) => { if (e.data?.type === 'playing' && e.data.id === matchId) done(true); };
     const done = (v: boolean) => { tabs.removeEventListener('message', onMsg); clearTimeout(timer); resolve(v); };
     tabs.addEventListener('message', onMsg);
     const timer = window.setTimeout(() => done(false), 300);
-    tabs.postMessage({ type: 'who-plays', id: matchId });
+    tabs.postMessage({ type: 'who-plays', id: matchId, tid });
   });
 }
 

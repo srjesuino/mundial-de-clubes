@@ -113,7 +113,7 @@ export function initSession(): void {
     const peek = loadGame();
     if (!peek) { hideEl('saved-game-banner'); toast('Não foi possível carregar o torneio salvo.'); return; }
     // a partida salva está sendo jogada agora em outra aba: não a encerra pelo simulador
-    if (peek.live && await liveElsewhere(peek.live.id)) {
+    if (peek.live && await liveElsewhere(peek.live.id, peek.tid)) {
       toast('Essa partida está sendo jogada agora em outra aba. Termine lá (ou feche aquela aba) e tente de novo.', 6000);
       return;
     }

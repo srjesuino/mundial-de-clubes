@@ -238,6 +238,41 @@ function autoContinents(): void {
   updateModalContinentSlots();
 }
 
+/** As regras ainda estão como vieram (nada a perder num recarregamento) */
+export function setupUntouched(): boolean {
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement | HTMLSelectElement>('.sb-input'));
+  const same = inputs.every(el => {
+    if (el instanceof HTMLSelectElement) {
+      const def = Array.from(el.options).find(o => o.defaultSelected) ?? el.options[0];
+      return el.value === def?.value;
+    }
+    return el.value === el.defaultValue;
+  });
+  return same && !store.selectedIds.length && !input('search-team').value;
+}
+
+const DRAFT_KEY = 'mc64-setup-draft';
+/** Guarda regras e clubes escolhidos antes de recarregar para a versão nova */
+export function saveSetupDraft(): void {
+  try {
+    const values = Object.fromEntries(Array.from(document.querySelectorAll<HTMLInputElement>('.sb-input')).map(el => [el.id, el.value]));
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ values, selected: store.selectedIds }));
+  } catch { /* sem sessionStorage: segue sem rascunho */ }
+}
+function restoreSetupDraft(): void {
+  let raw: string | null = null;
+  try { raw = sessionStorage.getItem(DRAFT_KEY); sessionStorage.removeItem(DRAFT_KEY); } catch { return; }
+  if (!raw || store.t) return;
+  try {
+    const d = JSON.parse(raw) as { values?: Record<string, string>; selected?: string[] };
+    Object.entries(d.values ?? {}).forEach(([id, v]) => {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      if (el && el.classList.contains('sb-input') && typeof v === 'string') el.value = v;
+    });
+    if (Array.isArray(d.selected)) store.selectedIds = d.selected.filter(id => typeof id === 'string' && ALL_TEAMS.some(t => t.id === id)).slice(0, MAX_USER_TEAMS);
+  } catch { /* rascunho ilegível */ }
+}
+
 export function showConfigScreen(): void {
   hideEl('screen-select');
   $('screen-select').classList.remove('flex-1');
@@ -250,6 +285,7 @@ export function showConfigScreen(): void {
 }
 
 export function initSetupScreens(): void {
+  restoreSetupDraft();
   document.querySelectorAll('.sb-input').forEach(el => {
     el.addEventListener('input', refreshConfigUI);
     el.addEventListener('change', refreshConfigUI);
