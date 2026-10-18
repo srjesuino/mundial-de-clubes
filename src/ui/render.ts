@@ -45,8 +45,8 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
     <button ${m.played ? `data-report="${m.id}"` : 'disabled'} class="match-result-card w-full text-left rounded-xl p-3 md:p-4 ${isUserMatch(t, m) ? 'border-emerald-500/50 bg-emerald-900/20' : ''} ${m.played ? 'hover:border-slate-500 transition' : ''}">
       ${showStage || badge ? `<div class="flex items-center justify-center gap-2 mb-2">${showStage ? `<span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center">${escapeHtml(m.stage)}</span>` : ''}${badge}</div>` : ''}
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-1 md:gap-3 flex-1 justify-end text-right min-w-0">
-          <span class="${hw} text-xs md:text-sm club-name text-right">${escapeHtml(H.name)}</span>
+        <div class="flex flex-col-reverse sm:flex-row items-center sm:justify-end gap-0.5 sm:gap-2 md:gap-3 flex-1 text-center sm:text-right min-w-0">
+          <span class="${hw} text-xs md:text-sm club-name w-full sm:w-auto text-center sm:text-right">${escapeHtml(H.name)}</span>
           ${logoImg(H, 'w-5 h-5 md:w-8 md:h-8 object-contain shrink-0')}
         </div>
         <div class="shrink-0 px-1 md:px-2 text-center flex flex-col items-center">
@@ -57,9 +57,9 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
           </div>
 
         </div>
-        <div class="flex items-center gap-1 md:gap-3 flex-1 justify-start text-left min-w-0">
+        <div class="flex flex-col sm:flex-row items-center sm:justify-start gap-0.5 sm:gap-2 md:gap-3 flex-1 text-center sm:text-left min-w-0">
           ${logoImg(A, 'w-5 h-5 md:w-8 md:h-8 object-contain shrink-0')}
-          <span class="${aw} text-xs md:text-sm club-name">${escapeHtml(A.name)}</span>
+          <span class="${aw} text-xs md:text-sm club-name w-full sm:w-auto text-center sm:text-left">${escapeHtml(A.name)}</span>
         </div>
       </div>
       ${ex ? `<div class="text-center text-[10px] md:text-xs text-amber-300 font-bold mt-1">${ex}</div>` : ''}

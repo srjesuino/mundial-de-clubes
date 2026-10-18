@@ -3,7 +3,6 @@ import '@fontsource/inter/latin-600.css';
 import '@fontsource/inter/latin-800.css';
 import '@fontsource/inter/latin-900.css';
 import './styles.css';
-import { registerSW } from 'virtual:pwa-register';
 import { initChampion, showChampion } from './ui/champion';
 import { installCrestFallback } from './ui/crest';
 import { $, hideEl, installClickShield } from './ui/dom';
@@ -24,6 +23,7 @@ import { initSetupScreens } from './ui/setup';
 import { initSound } from './ui/sound';
 import { initTactics } from './ui/tactics';
 import { initTicker } from './ui/ticker';
+import { initUpdates } from './ui/update';
 import { store } from './state/store';
 
 installCrestFallback();
@@ -70,8 +70,8 @@ document.querySelectorAll<HTMLElement>('[data-close]').forEach(b => {
 
 initSession();
 
-// PWA: atualiza sozinho quando há versão nova publicada
-registerSW({ immediate: true });
+// PWA: versão nova entra num momento seguro
+initUpdates();
 
 // Acesso para testes automatizados e depuração no console
 (window as unknown as { __mc64: unknown }).__mc64 = { store };

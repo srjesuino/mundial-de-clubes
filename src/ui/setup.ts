@@ -4,7 +4,7 @@ import { describeConfig, totalTeamsFor, validateConfig } from '../engine/config'
 import { clamp } from '../engine/math';
 import { createTournament } from '../engine/tournament';
 import type { Confederation, Config } from '../engine/types';
-import { loadGame, saveGame, store } from '../state/store';
+import { claimSave, loadGame, saveGame, store } from '../state/store';
 import { logoImg } from './crest';
 import { $, askConfirm, escapeHtml, hideEl, isShown, normalizeText, setHidden, showEl, toast } from './dom';
 import { enterDashboard } from './dashboard';
@@ -146,6 +146,7 @@ function refreshSelectGridSafe(): void { if (store.cfg) refreshSelectGrid(); }
 export function startTournament(slots: Partial<Record<Confederation, number>> | null): void {
   try {
     store.t = createTournament(cfg(), store.selectedIds, slots);
+    claimSave(); // este torneio passa a ser o salvo (substitui o anterior, já confirmado pelo jogador)
   } catch (e) {
     toast(e instanceof Error ? e.message : 'Não foi possível montar o torneio.');
     return;

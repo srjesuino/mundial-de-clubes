@@ -107,9 +107,58 @@ export function sanitize(s: Tournament): Tournament {
   return s;
 }
 
-export function saveGame(): void {
-  if (!store.t) return;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(store.t)); } catch { /* armazenamento indisponível */ }
+// ---------- Gravação ----------
+// Cada gravação deixa uma "revisão" ao lado do save. Se outra aba gravou depois que esta leu, esta aba não
+// sobrescreve (senão um jogo já disputado poderia voltar a ser jogado) e avisa para recarregar.
+export const REV_KEY = 'mundial64-save-rev';
+let myRev: string | null = null;
+let stale = false;
+let quotaWarned = false;
+type SaveProblem = 'stale' | 'quota' | 'saved-again';
+let onProblem: ((p: SaveProblem) => void) | null = null;
+export const onSaveProblem = (fn: (p: SaveProblem) => void): void => { onProblem = fn; };
+export const isStale = (): boolean => stale;
+
+const readRev = (): string | null => { try { return localStorage.getItem(REV_KEY); } catch { return null; } };
+const newRev = (): string => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/** Esta aba assume o save (torneio novo ou continuado nela) */
+export function claimSave(): void { myRev = readRev(); stale = false; }
+
+function markStale(): void {
+  if (stale) return;
+  stale = true;
+  onProblem?.('stale');
+}
+
+/** Outra aba gravou o torneio: esta fica desatualizada */
+export function watchOtherTabs(onChangedWithoutTournament: () => void): void {
+  window.addEventListener('storage', e => {
+    if (e.key !== REV_KEY && e.key !== SAVE_KEY && e.key !== null) return;
+    if (store.t) { if (readRev() !== myRev) markStale(); }
+    else onChangedWithoutTournament();
+  });
+}
+
+/** Grava o torneio. Sem espaço, tenta uma cópia sem os extras pesados; devolve false se não gravou. */
+export function saveGame(): boolean {
+  if (!store.t || stale) return false;
+  const stored = readRev();
+  if (stored !== null && myRev !== null && stored !== myRev) { markStale(); return false; }
+  const drop = (keys: string[]) => (k: string, v: unknown) => (keys.includes(k) ? undefined : v);
+  const attempts = [() => JSON.stringify(store.t), () => JSON.stringify(store.t, drop(['mc', 'mcLog'])), () => JSON.stringify(store.t, drop(['mc', 'mcLog', 'gm', 'pk']))];
+  for (const make of attempts) {
+    try {
+      const rev = newRev();
+      localStorage.setItem(SAVE_KEY, make());
+      localStorage.setItem(REV_KEY, rev);
+      myRev = rev;
+      if (quotaWarned) { quotaWarned = false; onProblem?.('saved-again'); }
+      return true;
+    } catch { /* tenta a próxima forma, mais enxuta */ }
+  }
+  if (!quotaWarned) { quotaWarned = true; onProblem?.('quota'); }
+  return false;
 }
 
 /** Lê o save; um save corrompido ou de outra versão é descartado em vez de travar a página */
@@ -119,7 +168,7 @@ export function loadGame(): Tournament | null {
   if (!raw) return null;
   try {
     const s: unknown = JSON.parse(raw);
-    if (validSave(s)) return sanitize(s);
+    if (validSave(s)) { myRev = readRev(); stale = false; return sanitize(s); }
   } catch { /* JSON inválido */ }
   clearSave();
   return null;
@@ -130,5 +179,7 @@ export function hasRawSave(): boolean {
 }
 
 export function clearSave(): void {
-  try { localStorage.removeItem(SAVE_KEY); } catch { /* ignora */ }
+  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(REV_KEY); } catch { /* ignora */ }
+  myRev = null;
+  stale = false;
 }

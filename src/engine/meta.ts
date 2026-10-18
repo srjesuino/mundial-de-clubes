@@ -195,7 +195,13 @@ export interface HofEntry {
   skill?: Skill;
   share: string;
 }
-export interface Hof { v: 1; list: HofEntry[]; titles: Record<string, { name: string; t: number; f: number }> }
+export interface Hof {
+  v: 1;
+  list: HofEntry[];
+  titles: Record<string, { name: string; t: number; f: number }>;
+  /** torneios mais antigos que saíram da lista (os títulos continuam contados) */
+  dropped?: number;
+}
 
 export const emptyHof = (): Hof => ({ v: 1, list: [], titles: {} });
 
@@ -208,7 +214,7 @@ export function hofEntry(t: Tournament, now = Date.now()): HofEntry {
   const f = qualifiedCount(t.config) === 1 && t.config.initialPhase === 'groups' ? null : lastDecisiveMatch(t);
   const fmt = describeConfig(t.config);
   return {
-    id: 'H' + now.toString(36),
+    id: 'H' + (t.tid ?? now.toString(36)),
     rv: 2,
     at: now,
     fmt: fmt.ok ? fmt.text : '',
@@ -230,7 +236,7 @@ export function hofEntry(t: Tournament, now = Date.now()): HofEntry {
 /** Acrescenta a entrada (as 200 mais recentes) e atualiza o placar de títulos, que sobrevive à poda */
 export function addHofEntry(h: Hof, e: HofEntry): Hof {
   h.list.push(e);
-  if (h.list.length > 200) h.list.splice(0, h.list.length - 200);
+  if (h.list.length > 200) h.dropped = (h.dropped ?? 0) + h.list.splice(0, h.list.length - 200).length;
   const bump = (c: ClubSnap, title: boolean) => {
     const r = (h.titles[c.id] ??= { name: c.name, t: 0, f: 0 });
     r.name = c.name;
@@ -264,7 +270,8 @@ export function normalizeHof(x: unknown): Hof | null {
   });
   const list = x.list.filter(validEntry);
   list.forEach(e => { if (!e.rv) migrateRanks(e); });
-  return { v: 1, list, titles };
+  const dropped = typeof x.dropped === 'number' && x.dropped > 0 ? Math.floor(x.dropped) : undefined;
+  return { v: 1, list, titles, ...(dropped ? { dropped } : {}) };
 }
 
 /** Entradas gravadas com a escala antiga de colocação: converte pela etapa (posição final de quem cai nela) */
@@ -272,6 +279,30 @@ const OLD_STAGE_PLACE: Record<string, number> = {
   'Final': 2, 'Semifinal': 3, 'Quartas de Final': 5, 'Oitavas de Final': 9, '16-avos de Final': 17, '32-avos de Final': 33,
   'Final da Lower': 3
 };
+/** Dupla eliminação antiga: quem caiu na rodada r da lower fica atrás de todos os que caíram depois */
+function oldDePlace(e: HofEntry, label: string): number | undefined {
+  const m = /^Lower · Rodada (\d+)$/.exec(label);
+  if (!m) return undefined;
+  const N = Number(/dupla eliminação com (\d+)/.exec(e.fmt)?.[1] ?? e.n);
+  const U = Math.log2(N);
+  if (!Number.isInteger(U) || U < 2) return undefined;
+  const LRC = 2 * (U - 1);
+  const losers = (r: number) => N / 2 ** (Math.floor((r - 1) / 2) + 2);
+  let ahead = 3; // campeão, vice e quem caiu na final da lower
+  for (let r = Number(m[1]) + 1; r < LRC; r++) ahead += losers(r);
+  return ahead + 1;
+}
+
+/** Fase de grupos antiga: classificados ficam à frente; depois, os Nº colocados de cada grupo */
+function oldGroupPlace(e: HofEntry, label: string): number | undefined {
+  const m = /^(\d+)º do Grupo /.exec(label);
+  const g = /(\d+) grupos? de (\d+)/.exec(e.fmt);
+  const q = /(\d+) classificados/.exec(e.fmt);
+  if (!m || !g || !q) return undefined;
+  const groups = Number(g[1]), qualified = Number(q[1]), k = qualified / groups;
+  return qualified + (Number(m[1]) - k - 1) * groups + 1;
+}
+
 /** Já está na escala nova? (posição no rótulo, ou rank que a escala antiga nunca alcança: ela ia no máximo a ~506) */
 const NEW_SCALE_LABEL = /\(\d+º(–\d+º)? de \d+\)$/;
 function migrateRanks(e: HofEntry): void {
@@ -280,7 +311,7 @@ function migrateRanks(e: HofEntry): void {
   e.users.forEach(u => {
     if (u.rank >= 999) return; // campeão e vice valem igual nas duas escalas
     const league = /^(\d+)º nos pontos corridos$/.exec(u.label);
-    const place = league ? Number(league[1]) : OLD_STAGE_PLACE[u.label];
+    const place = league ? Number(league[1]) : OLD_STAGE_PLACE[u.label] ?? oldDePlace(e, u.label) ?? oldGroupPlace(e, u.label);
     // sem como saber a posição exata (fases de grupos, suíço, dupla eliminação antigos): metade de baixo da tabela
     u.rank = 1001 - (place ?? Math.ceil(e.n / 2) + 1);
   });

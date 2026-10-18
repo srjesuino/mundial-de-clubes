@@ -26,7 +26,9 @@ export function logoImg(team: Crestable | null | undefined, cls: string): string
   if (!team) return `<img src="${NO_TEAM_IMG}" class="${cls}" alt="">`;
   const src = srcFor(team);
   const fb = src === team.logo ? '' : ' data-fb="1"';
-  return `<img src="${src}" data-team="${escapeHtml(team.name)}"${team.color ? ` data-color="${escapeHtml(team.color)}"` : ''}${fb} class="${cls}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+  // crossorigin: a resposta com CORS é guardada no cache do app do tamanho real (opaca contaria ~7 MB cada)
+  const cors = src.startsWith('http') ? ' crossorigin="anonymous"' : '';
+  return `<img src="${src}" data-team="${escapeHtml(team.name)}"${team.color ? ` data-color="${escapeHtml(team.color)}"` : ''}${fb}${cors} class="${cls}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
 }
 
 export function setLogo(el: HTMLImageElement, team: Crestable | null | undefined): void {
@@ -37,6 +39,7 @@ export function setLogo(el: HTMLImageElement, team: Crestable | null | undefined
   if (team.color) el.dataset.color = team.color; else delete el.dataset.color;
   const src = srcFor(team);
   if (src !== team.logo) el.dataset.fb = '1';
+  if (src.startsWith('http')) el.crossOrigin = 'anonymous'; else el.removeAttribute('crossorigin');
   if (el.getAttribute('src') !== src) el.src = src;
 }
 

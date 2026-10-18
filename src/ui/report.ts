@@ -77,7 +77,11 @@ export function openReport(id: string): void {
     (['home', 'away'] as const).filter(sd => x?.[sd] && x[sd] !== 'bal').map(sd => `${escapeHtml(team(t, m[sd]).name)} ${TACTIC_LABEL[x![sd]!]}`).join(' · ') || 'Equilibrado';
   const finalTac = effectiveTactics(t, m);
   const changed = (['home', 'away'] as const).some(sd => (tac0[sd] ?? 'bal') !== (finalTac[sd] ?? 'bal'));
-  const tac = `<p>Postura no início: ${tacText(tac0)}${changed ? ` · postura final: ${tacText(finalTac)}` : ''}</p>`;
+  // jogo ao vivo gravado antes de a postura inicial ser registrada: não dá para afirmar qual era
+  const tacKnown = m.tac0 !== undefined || !r.live;
+  const tac = tacKnown
+    ? `<p>Postura no início: ${tacText(tac0)}${changed ? ` · postura final: ${tacText(finalTac)}` : ''}</p>`
+    : `<p>Postura: ${tacText(finalTac)} (a do início do jogo não foi registrada; as chances acima usam esta)</p>`;
   const before = o.advH !== undefined
     ? `${escapeHtml(H.name)} ${pc(o.advH)} · ${escapeHtml(A.name)} ${pc(1 - o.advH)} (${m.kind === 'ko' ? 'avançar' : 'vencer'})`
     : `${escapeHtml(H.name)} ${pc(o.ph)} · empate ${pc(o.pd)} · ${escapeHtml(A.name)} ${pc(o.pa)}`;
@@ -86,7 +90,7 @@ export function openReport(id: string): void {
   const sup = users.map(s => {
     const id = m[s];
     const p = achievedChance(t, m, id);
-    return p === null ? '' : `<p class="text-amber-300">Superação ${escapeHtml(team(t, id).name)}: +${superPoints(t, m, id)} (a chance de ir tão bem era ${pc(p)})</p>`;
+    return p === null ? '' : `<p class="text-amber-300">Superação ${escapeHtml(team(t, id).name)}: +${superPoints(t, m, id)} (a chance de ir tão bem, sem contar a postura, era ${pc(p)})</p>`;
   }).join('');
   const lv = r.live;
   const mine = lv ? [lv.at && lv.at[0] ? `finalizações ${lv.at[1]}/${lv.at[0]}` : '', lv.df && lv.df[0] ? `defesas ${lv.df[0] - lv.df[1]}/${lv.df[0]}` : '', lv.ps[0] ? `pênaltis ${lv.ps[1]}/${lv.ps[0]}` : '', lv.pd[0] ? `pênaltis pegos ${lv.pd[1]}/${lv.pd[0]}` : ''].filter(Boolean).join(' · ') : '';

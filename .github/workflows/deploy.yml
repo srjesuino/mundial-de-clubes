@@ -41,6 +41,12 @@ jobs:
           name: playwright-report
           path: test-results
           retention-days: 7
+      # Pages serve o site em /<repo>/: caminhos absolutos e o service worker restrito à raiz do app
+      - name: Build para o GitHub Pages
+        if: github.event_name != 'pull_request'
+        run: npm run build
+        env:
+          BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

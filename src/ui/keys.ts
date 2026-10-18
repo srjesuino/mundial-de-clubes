@@ -9,7 +9,7 @@ import { skipTicker, tickerOpen } from './ticker';
 /** Janelas fechadas pelo Esc, da que fica por cima para a de baixo */
 const ESC_ORDER = ['modal-share', 'modal-report', 'modal-settings', 'modal-bracket', 'modal-stats', 'modal-odds', 'modal-hall',
   'modal-champion', 'modal-groups', 'modal-continent-dist'];
-const BLOCKING = [...ESC_ORDER, 'modal-side', 'modal-round-results', 'modal-confirm'];
+const BLOCKING = [...ESC_ORDER, 'modal-side', 'modal-round-results', 'modal-confirm', 'modal-stale'];
 
 const anyModal = () => BLOCKING.some(id => { const el = document.getElementById(id); return !!el && isShown(el); });
 

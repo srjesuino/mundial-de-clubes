@@ -38,7 +38,7 @@ export function createTournament(
   if (missing) throw new Error(`Clube desconhecido: ${missing}`);
   const bases = buildTournamentPool(total, userIds, slots, catalog);
   const t: Tournament = {
-    v: 3, config: { ...config }, userIds: [...userIds], activeId: userIds[0],
+    v: 3, tid: Date.now().toString(36) + Math.random().toString(36).slice(2, 10), config: { ...config }, userIds: [...userIds], activeId: userIds[0],
     teams: {}, phase: 'GROUP', round: 0, seq: 0,
     groups: {}, schedule: {}, swissRounds: [], knockout: [], bracket: null, draw: null,
     champion: null, runnerUp: null, championNote: null, live: null, slots: slots ?? null

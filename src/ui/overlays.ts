@@ -6,7 +6,7 @@ import { isShown, setVisibilityHook } from './dom';
 /** Da camada de baixo para a de cima (mesma ordem do z-index) */
 const LAYERS = ['modal-groups', 'screen-match', 'screen-draw', 'round-ticker', 'modal-round-results', 'modal-continent-dist', 'modal-champion',
   'minigame-overlay', 'modal-bracket', 'modal-stats', 'modal-odds', 'modal-hall', 'modal-settings', 'modal-report', 'modal-share',
-  'modal-side', 'modal-confirm'];
+  'modal-side', 'modal-confirm', 'modal-stale'];
 const LAYER_SET = new Set(LAYERS);
 /** Nunca ficam inertes (avisos) */
 const ALWAYS_LIVE = new Set(['toast', 'sr-live']);

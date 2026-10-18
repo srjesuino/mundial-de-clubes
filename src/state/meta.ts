@@ -22,7 +22,8 @@ let memHof: Hof | null = null;
 let memAch: AchStore | null = null;
 const pendingHof: HofEntry[] = [];
 const pendingAch: AchStore['got'] = {};
-let hofCleared = false;
+/** ids apagados por um "Apagar galeria" que ainda não conseguiu gravar (entradas novas de outras abas ficam) */
+let clearedIds: Set<string> | null = null;
 let warned = false;
 let onFail: (() => void) | null = null;
 export const onMetaSaveFail = (fn: () => void): void => { onFail = fn; };
@@ -49,7 +50,12 @@ function write(key: string, value: unknown): boolean {
 export function hof(): Hof {
   const stored = read(META.hof, normalizeHof);
   if (stored === undefined) return (memHof ??= emptyHof());
-  const h = hofCleared || !stored ? emptyHof() : stored;
+  let h = stored ?? emptyHof();
+  if (clearedIds) {
+    const keep = h.list.filter(e => !clearedIds!.has(e.id));
+    h = emptyHof();
+    keep.forEach(e => addHofEntry(h, e));
+  }
   pendingHof.forEach(e => { if (!h.list.some(x => x.id === e.id)) addHofEntry(h, e); });
   return (memHof = h);
 }
@@ -67,14 +73,15 @@ export function recordHof(e: HofEntry): void {
   if (h.list.some(x => x.id === e.id)) return;
   addHofEntry(h, e);
   pendingHof.push(e);
-  if (write(META.hof, h)) { pendingHof.length = 0; hofCleared = false; }
+  if (write(META.hof, h)) { pendingHof.length = 0; clearedIds = null; }
 }
 
 export function clearHof(): void {
+  const ids = new Set([...hof().list.map(e => e.id), ...(clearedIds ?? [])]);
   pendingHof.length = 0;
-  hofCleared = true;
+  clearedIds = ids;
   memHof = emptyHof();
-  if (write(META.hof, memHof)) hofCleared = false;
+  if (write(META.hof, memHof)) clearedIds = null;
 }
 
 /** Desbloqueia uma conquista (idempotente). Devolve true se ela é nova. */

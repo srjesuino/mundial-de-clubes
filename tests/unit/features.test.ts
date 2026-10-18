@@ -419,7 +419,8 @@ describe('correções da terceira revisão', () => {
     });
     setSeed(5);
     const t1 = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1)));
-    const eA1 = hofEntry(t1, 1000), eB1 = hofEntry(t1, 2000), eA2 = hofEntry(t1, 3000);
+    // três torneios diferentes (o id da entrada vem do identificador do torneio)
+    const eA1 = hofEntry({ ...t1, tid: 'a1' }, 1000), eB1 = hofEntry({ ...t1, tid: 'b1' }, 2000), eA2 = hofEntry({ ...t1, tid: 'a2' }, 3000);
     (globalThis as { localStorage?: unknown }).localStorage = makeLS(() => failA);
     vi.resetModules();
     const tabA = await import('../../src/state/meta');
@@ -433,5 +434,29 @@ describe('correções da terceira revisão', () => {
     const saved = JSON.parse(store['mundial64-hof-v1']).list.map((e: { id: string }) => e.id).sort();
     expect(saved).toEqual([eA1.id, eB1.id, eA2.id].sort());
     delete (globalThis as { localStorage?: unknown }).localStorage;
+  });
+});
+
+describe('correções da quarta revisão', () => {
+  it('o mesmo torneio gravado por duas abas entra uma vez só na galeria', () => {
+    setSeed(6);
+    const t = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 8 }), someUsers(1)));
+    expect(hofEntry(t, 1).id).toBe(hofEntry(t, 99999).id);
+    const h = addHofEntry(emptyHof(), hofEntry(t, 1));
+    expect(h.list).toHaveLength(1);
+  });
+
+  it('migração: dupla eliminação antiga e fase de grupos pela posição real', async () => {
+    const { normalizeHof } = await import('../../src/engine/meta');
+    setSeed(4);
+    const t = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 16, bracketFormat: 'double' }), someUsers(1)));
+    const base = hofEntry(t, 1) as unknown as Record<string, unknown>;
+    const user = (base.users as Record<string, unknown>[])[0];
+    const mk = (label: string, rank: number, fmt = base.fmt as string, n = 16) => ({ ...base, id: 'X' + label, rv: undefined, fmt, n, users: [{ ...user, label, rank }] });
+    const h = normalizeHof({ v: 1, list: [
+      mk('Lower · Rodada 5', 506), mk('Lower · Rodada 1', 502),
+      mk('3º do Grupo B', 47, '32 clubes · 8 grupos de 4 · ida e volta (6 rodadas) · 16 classificados → mata-mata a partir das Oitavas de Final', 32)
+    ], titles: {} })!;
+    expect(h.list.map(e => 1001 - e.users[0].rank)).toEqual([4, 13, 17]);
   });
 });

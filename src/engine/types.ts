@@ -205,6 +205,8 @@ export interface ForecastLogEntry {
 
 export interface Tournament {
   v: 3;
+  /** identificador único do torneio (não usa o sorteio do jogo) */
+  tid?: string;
   config: Config;
   userIds: string[];
   activeId: string;

@@ -18,6 +18,8 @@
 
         <header class="relative text-center mb-6 shrink-0">
             <div class="relative z-10 flex justify-end gap-1 mb-1 md:mb-0 md:absolute md:right-0 md:top-0">
+                <button id="btn-update" type="button" aria-label="Atualizar para a versão nova" title="Versão nova disponível"
+                    class="icon-btn hidden">⟳</button>
                 <button id="btn-sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som (tecla M)"
                     class="icon-btn">🔊</button>
                 <button id="btn-settings" type="button" aria-label="Preferências" title="Preferências"
@@ -279,7 +281,7 @@
                         </div>
                         <button id="btn-new-tournament"
                             class="min-h-[44px] bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold py-2 px-4 rounded-lg border border-red-500/20 transition text-sm">Novo Torneio</button>
-                        <p class="text-[11px] text-slate-500 text-center">💾 O progresso é salvo automaticamente neste navegador.</p>
+                        <p id="save-note" class="text-[11px] text-slate-500 text-center">💾 O progresso é salvo automaticamente neste navegador.</p>
                     </div>
                 </div>
 
@@ -703,6 +705,15 @@
                 <button data-close="modal-report" aria-label="Fechar"
                     class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
                 <div id="report-content"></div>
+            </div>
+        </div>
+
+        <!-- AVISO: o torneio foi alterado em outra aba (esta aba não grava mais para não sobrescrever) -->
+        <div id="modal-stale" class="hidden fixed inset-0 bg-black/90 z-[97] p-4 flex items-center justify-center" role="alertdialog" aria-modal="true" aria-labelledby="stale-title">
+            <div class="w-full max-w-md glass rounded-2xl p-6 border border-amber-500/50 shadow-2xl text-center">
+                <h3 id="stale-title" class="text-xl font-black mb-2 text-amber-300">O torneio mudou em outra aba</h3>
+                <p class="text-slate-300 text-sm mb-6">Para não apagar o que foi jogado lá, esta aba parou de salvar. Recarregue para continuar de onde o torneio está agora.</p>
+                <button id="btn-stale-reload" data-autofocus class="px-6 py-3 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black">Recarregar</button>
             </div>
         </div>
 

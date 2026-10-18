@@ -48,7 +48,9 @@ function updateDrawButtons(): void {
     $(id).setAttribute('aria-disabled', String(drawAnimating));
     $(id).classList.toggle('opacity-50', drawAnimating);
   });
-  if (hadFocus) $(done ? 'btn-finish-draw' : 'btn-draw-next').focus({ preventScroll: true });
+  // move o foco só quando o botão focado some (fim do sorteio) ou quando a tela acabou de abrir
+  if (done && hadFocus) $('btn-finish-draw').focus({ preventScroll: true });
+  else if (!done && (wasFocused === $('screen-draw') || wasFocused === $('btn-finish-draw'))) $('btn-draw-next').focus({ preventScroll: true });
   $('draw-progress').textContent = D ? `Confronto ${Math.min(D.revealed, D.pairs.length)} de ${D.pairs.length}` : 'Sorteio concluído';
 }
 

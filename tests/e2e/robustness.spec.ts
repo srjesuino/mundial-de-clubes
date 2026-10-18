@@ -74,3 +74,59 @@ test('celular 390px: sem rolagem horizontal no painel, na partida e no plantão 
   expect(box!.height).toBeGreaterThanOrEqual(40);
   expect(errors).toEqual([]);
 });
+
+test('duas abas no mesmo torneio: a aba que ficou para trás não sobrescreve e pede para recarregar', async ({ page, context }) => {
+  const errors = trackErrors(page);
+  await startTournament(page, { 'sb-initial-phase': 'groups', 'sb-groups': 4, 'sb-teams-per-group': 4 }, 1);
+  // a aba B continua o mesmo torneio: ela assume, e a A fica desatualizada
+  const tabB = await context.newPage();
+  const errorsB = trackErrors(tabB);
+  await tabB.goto('/');
+  await tabB.click('#btn-continue-save');
+  await expect(tabB.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.locator('#modal-stale')).toBeVisible({ timeout: 5000 });
+  await tabB.waitForTimeout(800);
+  await simulateToEndOfRound(tabB);
+  const savedByB = await tabB.evaluate(() => JSON.parse(localStorage.getItem('mundial64-save-v3')!).round);
+  expect(savedByB).toBe(1);
+  // a aba A não consegue gravar por cima (a janela bloqueia, e saveGame recusa)
+  const wrote = await page.evaluate(() => { const w = window as any; return w.__mc64.store.t ? JSON.parse(localStorage.getItem('mundial64-save-v3')!).round : -1; });
+  expect(wrote).toBe(1);
+  await page.click('#btn-stale-reload');
+  await page.waitForLoadState('load');
+  await page.click('#btn-continue-save');
+  expect(await page.evaluate(() => (window as any).__mc64.store.t.round)).toBe(1);
+  expect(errors).toEqual([]);
+  expect(errorsB).toEqual([]);
+});
+
+async function simulateToEndOfRound(page: import('@playwright/test').Page) {
+  await page.click('#btn-simulate-match');
+  await page.waitForTimeout(450);
+  if (await page.locator('#round-ticker').isVisible()) { await page.click('#tk-skip'); }
+  await expect(page.locator('#btn-advance-round')).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(600);
+  await page.click('#btn-advance-round');
+  await page.waitForTimeout(500);
+}
+
+test('armazenamento cheio: avisa que o torneio não está sendo salvo', async ({ page }) => {
+  const errors = trackErrors(page);
+  await startTournament(page, { 'sb-initial-phase': 'knockout', 'sb-total-teams': 8 }, 1);
+  await page.evaluate(() => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k: string, v: string) {
+      if (k === 'mundial64-save-v3') throw new DOMException('cheio', 'QuotaExceededError');
+      return orig.call(this, k, v);
+    };
+  });
+  await page.click('#btn-draw');
+  await page.waitForTimeout(500);
+  await page.click('#btn-draw-all');
+  await expect(page.locator('#toast')).toContainText('armazenamento', { timeout: 5000 });
+  await page.waitForTimeout(500);
+  await page.click('#btn-finish-draw');
+  await page.click('#modal-bracket [data-close]');
+  await expect(page.locator('#save-note')).toContainText('NÃO está sendo salvo');
+  expect(errors).toEqual([]);
+});

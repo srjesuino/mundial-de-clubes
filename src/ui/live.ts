@@ -97,7 +97,7 @@ function logEvent(kind: EventKind, text: string, minute?: number): HTMLElement {
   ev.innerHTML = `${badge}<span class="${kind === 'goal' ? 'font-bold text-emerald-100' : kind === 'goalAgainst' ? 'font-bold text-red-100' : ''}">${escapeHtml(text)}</span>`;
   $('match-events').prepend(ev);
   // narração: gols e marcos do jogo (os avisos de lance não, para não poluir)
-  if (kind === 'goal' || kind === 'goalAgainst' || kind === 'info') srSay((minute !== undefined ? `${minute} minutos. ` : '') + text);
+  if (kind === 'goal' || kind === 'goalAgainst' || kind === 'info') srSay((minute !== undefined ? `${minute} ${minute === 1 ? 'minuto' : 'minutos'}. ` : '') + text);
   else if (kind === 'big' || kind === 'banner') srSay(text, true);
   return ev;
 }

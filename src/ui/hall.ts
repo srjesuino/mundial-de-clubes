@@ -59,7 +59,13 @@ export const copyShare = (): void => { if (store.t) copyText(buildShareText(stor
 
 // ---------- Painel e campeão ----------
 /** "1 em 1,5", "1 em 17", "1 em 1.240" */
-const oneIn = (score: number): string => { const n = superOneIn(score); return fmtBR(n, n < 10 && n > 1.05 ? 1 : 0); };
+const oneIn = (score: number): string => {
+  if (score <= 0) return '1';
+  const n = superOneIn(score);
+  const r1 = Math.round(n * 10) / 10;
+  if (r1 >= 10) return fmtBR(Math.round(n));
+  return n < 1.1 ? fmtBR(Math.round(n * 100) / 100, 2) : fmtBR(r1, 1);
+};
 function renderDashSuper(): void {
   const t = store.t;
   const el = $('dash-super');
@@ -90,7 +96,7 @@ function champsTab(list: HofEntry[]): string {
   const h = hof();
   const top = Object.entries(h.titles).filter(([, r]) => r.t > 0).sort((a, b) => b[1].t - a[1].t || b[1].f - a[1].f).slice(0, 5);
   const most = top.length ? `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3 mb-4"><h3 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-2">Mais títulos</h3>${top.map(([id, r]) =>
-    `<div class="flex items-center gap-2 py-1">${logoImg(ALL_TEAMS.find(x => x.id === id) ?? { name: r.name, logo: '' }, 'w-5 h-5 object-contain shrink-0')}<span class="truncate">${escapeHtml(r.name)}</span><span class="ml-auto text-xs text-slate-400 tabular-nums shrink-0">🏆 ${r.t} · ${r.f} final${r.f === 1 ? '' : 's'}</span></div>`).join('')}</div>` : '';
+    `<div class="flex items-center gap-2 py-1">${logoImg(ALL_TEAMS.find(x => x.id === id) ?? { name: r.name, logo: '' }, 'w-5 h-5 object-contain shrink-0')}<span class="truncate">${escapeHtml(r.name)}</span><span class="ml-auto text-xs text-slate-400 tabular-nums shrink-0">🏆 ${r.t} · ${r.f} ${r.f === 1 ? 'final' : 'finais'}</span></div>`).join('')}</div>` : '';
   if (!list.length) return most + '<p class="text-center text-slate-400 py-6">Nenhum torneio terminado ainda. Termine um torneio para ele aparecer aqui.</p>';
   return most + `<div class="flex flex-col gap-2">${list.slice().reverse().map(e => {
     const best = e.users.reduce((a, b) => (b.rank > a.rank ? b : a), e.users[0]);
@@ -105,6 +111,11 @@ function champsTab(list: HofEntry[]): string {
   }).join('')}</div>`;
 }
 
+const prunedNote = (): string => {
+  const d = hof().dropped;
+  return d ? `<p class="text-[11px] text-slate-500 text-center mb-2">Mostrando os últimos 200 torneios (${fmtBR(d)} mais antigos saíram da lista; os títulos em "Mais títulos" contam todos).</p>` : '';
+};
+
 function clubsTab(list: HofEntry[]): string {
   const agg: Record<string, { name: string; ovr: number; n: number; t: number; f: number; best: { rank: number; label: string }; v: number; e: number; d: number; base: ClubSnap }> = {};
   list.forEach(e => e.users.forEach(u => {
@@ -117,7 +128,7 @@ function clubsTab(list: HofEntry[]): string {
   }));
   const rows = Object.values(agg).sort((a, b) => b.t - a.t || b.f - a.f || b.n - a.n);
   if (!rows.length) return '<p class="text-center text-slate-400 py-6">Seus clubes aparecem aqui quando um torneio termina.</p>';
-  return `<div class="flex flex-col gap-2">${rows.map(a => `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3 flex items-center gap-3 min-w-0">
+  return prunedNote() + `<div class="flex flex-col gap-2">${rows.map(a => `<div class="bg-slate-900/60 border border-slate-700 rounded-xl p-3 flex items-center gap-3 min-w-0">
     ${logoImg(baseOf(a.base), 'w-8 h-8 object-contain shrink-0')}<div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(a.name)}</p>
     <p class="text-[11px] text-slate-400">${a.n} torneio${a.n === 1 ? '' : 's'} · 🏆 ${a.t} · finais ${a.f} · melhor: ${escapeHtml(a.best.label)}</p>
     <p class="text-[11px] text-slate-500 tabular-nums">${a.v}V ${a.e}E ${a.d}D</p></div></div>`).join('')}</div>`;
@@ -133,7 +144,7 @@ function recordsTab(list: HofEntry[]): string {
     <div class="min-w-0 flex-1"><p class="font-bold truncate">${escapeHtml(u.name)} <span class="text-[10px] text-slate-500">OVR ${u.ovr}</span></p><p class="text-[11px] text-slate-400 truncate">${escapeHtml(u.label)} · ${dateBR(u.at)} · ${DIFF[u.diff]?.label ?? ''}</p></div>
     <div class="text-right shrink-0"><p class="font-black text-amber-300 tabular-nums">${fmtBR(u.sup)}</p><p class="text-[10px] text-slate-500 tabular-nums">1 em ${oneIn(u.sup)}</p></div></div>`).join('')
     : '<p class="text-center text-slate-400 py-6">Sem recordes neste filtro.</p>';
-  return `<p class="text-[11px] text-slate-500 text-center mb-2">Superação: pelos OVRs do simulador, a chance de ir tão bem em cada um dos jogos, um a um (posturas não contam).</p>
+  return prunedNote() + `<p class="text-[11px] text-slate-500 text-center mb-2">Superação: pelos OVRs do simulador, a chance de ir tão bem em cada um dos jogos, um a um (posturas não contam).</p>
     <div class="flex flex-wrap justify-center gap-2 mb-3">${chips}</div><div class="flex flex-col gap-2">${rows}</div>`;
 }
 

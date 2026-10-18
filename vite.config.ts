@@ -1,13 +1,19 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// base relativa: funciona tanto em https://<usuario>.github.io/<repo>/ quanto em domínio próprio
+// base: relativa por padrão (funciona em qualquer pasta); no deploy do GitHub Pages, BASE=/<repo>/ deixa os
+// caminhos absolutos, e o service worker só responde pela raiz do app (uma URL mais funda dá o 404 do Pages)
+const base = process.env.BASE || './';
+const absolute = base.startsWith('/');
+const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export default defineConfig({
-  base: './',
+  base,
   build: { target: 'es2022', sourcemap: true },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt': a versão nova só entra quando é seguro (nunca no meio de uma partida, sorteio ou plantão)
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Mundial de Clubes 64',
@@ -23,16 +29,18 @@ export default defineConfig({
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+          { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {
+        ...(absolute ? { navigateFallbackAllowlist: [new RegExp('^' + escapeRe(base) + '(index\\.html)?$')] } : {}),
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // escudos dos clubes vêm de um servidor externo: cache para jogar offline depois da 1ª visita
         runtimeCaching: [{
           urlPattern: /^https:\/\/tmssl\.akamaized\.net\/images\/wappen\//,
           handler: 'CacheFirst',
-          options: { cacheName: 'escudos', expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 60 }, cacheableResponse: { statuses: [0, 200] } }
+          // pedidos com CORS (crossorigin=anonymous): só respostas 200 de verdade, sem o tamanho inflado das opacas
+          options: { cacheName: 'escudos-v2', expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 60 }, cacheableResponse: { statuses: [200] } }
         }]
       }
     })

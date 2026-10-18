@@ -1,14 +1,14 @@
 // Novo torneio, continuar torneio salvo e torneio interrompido
 import { PHASE_LABEL, hasPens, resolveInterruptedLive, team, winnerId } from '../engine';
 import type { PlayableMatch } from '../engine/types';
-import { clearSave, hasRawSave, loadGame, saveGame, store } from '../state/store';
-import { $, askConfirm, hideEl, showEl, toast } from './dom';
+import { clearSave, hasRawSave, loadGame, onSaveProblem, saveGame, store, watchOtherTabs } from '../state/store';
+import { $, askConfirm, hideEl, isShown, showEl, toast } from './dom';
 import { enterDashboard } from './dashboard';
 import { clearDrawTimers } from './draw';
 import { resetFlow } from './flow';
 import { emit } from './hooks';
 import { recordTournamentEnd } from './hall';
-import { discardLive } from './live';
+import { discardLive, holdLive } from './live';
 import { refreshConfigUI, resetSelection, startTournament } from './setup';
 import { stopBed } from './sound';
 
@@ -85,7 +85,29 @@ function initSavedBanner(): void {
   showEl('saved-game-banner');
 }
 
+/** Avisos de gravação: outra aba mudou o torneio, ou o armazenamento encheu */
+function initSaveProblems(): void {
+  onSaveProblem(p => {
+    const note = document.getElementById('save-note');
+    if (p === 'stale') {
+      holdLive(true);
+      showEl('modal-stale');
+      return;
+    }
+    if (p === 'quota') {
+      toast('Não foi possível salvar o torneio: o armazenamento deste navegador está cheio. Apagar a galeria libera espaço.', 7000);
+      if (note) { note.textContent = '⚠️ O progresso NÃO está sendo salvo: o armazenamento do navegador está cheio.'; note.className = 'text-[11px] text-amber-300 text-center font-bold'; }
+      return;
+    }
+    if (note) { note.textContent = '💾 O progresso é salvo automaticamente neste navegador.'; note.className = 'text-[11px] text-slate-500 text-center'; }
+  });
+  $('btn-stale-reload').onclick = () => window.location.reload();
+  // sem torneio aberto nesta aba: só atualiza o aviso de "torneio salvo encontrado"
+  watchOtherTabs(() => { if (isShown('screen-sandbox-config')) initSavedBanner(); });
+}
+
 export function initSession(): void {
+  initSaveProblems();
   $('btn-new-tournament').onclick = confirmNewTournament;
   $('btn-continue-save').onclick = () => {
     const saved = loadGame();
