@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Simulador de torneio de clubes de futebol: grupos, sistema suíço, mata-mata e dupla eliminação, com partidas jogáveis.">
+    <meta name="theme-color" content="#020617">
+    <title>Mundial de Clubes 64</title>
+    <link rel="icon" href="/mundial-de-clubes/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/mundial-de-clubes/apple-touch-icon.png">
+  <script type="module" crossorigin src="/mundial-de-clubes/assets/index-ZxvjgRTs.js"></script>
+  <link rel="stylesheet" crossorigin href="/mundial-de-clubes/assets/index-11th8NpL.css">
+<link rel="manifest" href="/mundial-de-clubes/manifest.webmanifest"></head>
+
+<body class="text-sm md:text-base selection:bg-emerald-500 selection:text-white">
+
+
+    <div id="app" class="max-w-[1400px] mx-auto p-4 md:p-6 min-h-screen flex flex-col">
+
+        <header class="relative text-center mb-6 shrink-0">
+            <div class="relative z-10 flex justify-end gap-1 mb-1 md:mb-0 md:absolute md:right-0 md:top-0">
+                <button id="btn-update" type="button" aria-label="Atualizar para a versão nova" title="Versão nova disponível"
+                    class="icon-btn hidden">⟳</button>
+                <button id="btn-sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som (tecla M)"
+                    class="icon-btn">🔊</button>
+                <button id="btn-settings" type="button" aria-label="Preferências" title="Preferências"
+                    class="icon-btn">⚙️</button>
+            </div>
+            <h1
+                class="text-3xl md:text-5xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 uppercase drop-shadow-lg">
+                Mundial de Clubes 64
+            </h1>
+            <p class="text-slate-400 font-semibold tracking-wide mt-1">Simulador EA FC Edition</p>
+        </header>
+
+        <!-- TELA 0: SANDBOX CONFIG -->
+        <div id="screen-sandbox-config" class="glass rounded-2xl p-6 md:p-8 animate-fade-in flex-1">
+            <div id="saved-game-banner"
+                class="hidden mb-8 bg-emerald-900/30 border border-emerald-500/40 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3">
+                <div class="text-center md:text-left">
+                    <p class="text-emerald-300 font-black uppercase tracking-wide text-sm">Torneio salvo encontrado</p>
+                    <p class="text-slate-300 text-sm" id="saved-game-info">—</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-discard-save"
+                        class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 font-bold transition">Descartar</button>
+                    <button id="btn-continue-save"
+                        class="px-6 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black transition shadow-lg shadow-emerald-500/30">Continuar</button>
+                </div>
+            </div>
+
+            <div class="flex justify-center mb-6">
+                <button id="btn-hall-config" type="button"
+                    class="px-4 py-2 min-h-[44px] rounded-lg bg-amber-900/30 hover:bg-amber-800/40 border border-amber-500/30 text-amber-200 font-bold transition">🏛️ Galeria de Campeões</button>
+            </div>
+
+            <h2 id="sandbox-title" tabindex="-1" class="text-3xl font-black mb-2 text-center text-indigo-400 uppercase focus:outline-none">Sandbox Mode</h2>
+            <p class="text-center text-slate-400 mb-8 text-sm">Crie as regras do seu próprio torneio</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2 md:col-span-2">
+                    <label for="sb-initial-phase" class="text-slate-300 font-bold text-sm">Fase Inicial</label>
+                    <select autocomplete="off" id="sb-initial-phase" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="groups">Fase de Grupos + Mata-Mata</option>
+                        <option value="swiss">Sistema Suíço + Mata-Mata</option>
+                        <option value="knockout">Mata-Mata Direto</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2 md:col-span-2">
+                    <label for="sb-bracket-format" class="text-slate-300 font-bold text-sm">Formato do Mata-Mata</label>
+                    <select autocomplete="off" id="sb-bracket-format" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="single">Eliminação Simples (sorteio a cada fase)</option>
+                        <option value="double">Dupla Eliminação (Upper/Lower Bracket)</option>
+                    </select>
+                </div>
+
+                <!-- Grupo Configs -->
+                <div class="flex flex-col gap-2 group-config">
+                    <label for="sb-groups" class="text-slate-300 font-bold text-sm">Número de Grupos</label>
+                    <input type="number" id="sb-groups" value="8" min="1" max="16" step="1" inputmode="numeric" autocomplete="off" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                </div>
+                <div class="flex flex-col gap-2 group-config">
+                    <label for="sb-teams-per-group" class="text-slate-300 font-bold text-sm">Times por Grupo</label>
+                    <input type="number" id="sb-teams-per-group" value="4" min="3" max="32" step="1" inputmode="numeric" autocomplete="off" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                </div>
+                <div class="flex flex-col gap-2 group-config">
+                    <label for="sb-advancing" class="text-slate-300 font-bold text-sm">Classificados por Grupo</label>
+                    <select autocomplete="off" id="sb-advancing" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="1">Top 1</option>
+                        <option value="2" selected>Top 2</option>
+                        <option value="4">Top 4</option>
+                        <option value="8">Top 8</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2 group-config">
+                    <label for="sb-group-legs" class="text-slate-300 font-bold text-sm">Turnos (Fase de Grupos)</label>
+                    <select autocomplete="off" id="sb-group-legs" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="1">1 Turno (Campo Neutro)</option>
+                        <option value="2" selected>2 Turnos (Ida e Volta, com mando de campo)</option>
+                    </select>
+                </div>
+                <div class="flex flex-col gap-2 md:col-span-2 draw-config">
+                    <label for="sb-draw-type" class="text-slate-300 font-bold text-sm">Tipo de Sorteio</label>
+                    <select autocomplete="off" id="sb-draw-type" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="potted">Equilibrado (Times Fortes como Cabeças de Chave)</option>
+                        <option value="random">100% Aleatório (Grupos/Confrontos da Morte Possíveis)</option>
+                    </select>
+                </div>
+
+                <!-- Swiss Configs -->
+                <div class="flex flex-col gap-2 md:col-span-2 swiss-config hidden">
+                    <label for="sb-total-teams-swiss" class="text-slate-300 font-bold text-sm">Total de Times (Sistema Suíço)</label>
+                    <select autocomplete="off" id="sb-total-teams-swiss" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="16">16 Times</option>
+                        <option value="32" selected>32 Times</option>
+                        <option value="64">64 Times</option>
+                    </select>
+                </div>
+
+                <!-- Knockout Configs -->
+                <div class="flex flex-col gap-2 md:col-span-2 knockout-config hidden">
+                    <label for="sb-total-teams" class="text-slate-300 font-bold text-sm">Total de Times (Apenas Potências de 2)</label>
+                    <select autocomplete="off" id="sb-total-teams" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="8">8 Times</option>
+                        <option value="16">16 Times</option>
+                        <option value="32" selected>32 Times</option>
+                        <option value="64">64 Times</option>
+                    </select>
+                </div>
+
+                <!-- Dificuldade dos minigames -->
+                <div class="flex flex-col gap-2 md:col-span-2">
+                    <label for="sb-difficulty" class="text-slate-300 font-bold text-sm">Dificuldade dos Minigames</label>
+                    <select autocomplete="off" id="sb-difficulty" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="facil">Fácil (janelas maiores, goleiro adversário lê menos)</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="dificil">Difícil</option>
+                        <option value="lenda">Lenda</option>
+                    </select>
+                    <p class="text-[11px] text-slate-500">Só muda os minigames das partidas ao vivo. Simular e as probabilidades continuam iguais.</p>
+                </div>
+
+                <!-- Fill Config -->
+                <div class="flex flex-col gap-2 md:col-span-2 mt-4 pt-4 border-t border-slate-700">
+                    <label for="sb-fill-method" class="text-slate-300 font-bold text-sm">Distribuição de Times NPCs</label>
+                    <select autocomplete="off" id="sb-fill-method" class="sb-input p-3 bg-slate-900 border border-slate-700 rounded-lg text-white font-bold focus:border-indigo-500 focus:outline-none transition">
+                        <option value="random">Sorteio Aleatório (Padrão)</option>
+                        <option value="custom">Configurar Manualmente por Continente</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="sb-summary" class="mt-6 text-center text-sm font-semibold text-slate-300 bg-slate-900/60 border border-slate-700 rounded-lg p-3"></div>
+            <div id="sb-error" class="text-red-400 font-bold text-center mt-4 hidden bg-red-900/30 border border-red-500/50 p-3 rounded-lg">Erro</div>
+
+            <div class="mt-8 flex justify-center">
+                <button id="btn-start-sandbox" class="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-black transition shadow-lg shadow-indigo-500/30 uppercase tracking-wider">
+                    Definir Regras
+                </button>
+            </div>
+        </div>
+
+        <!-- TELA 1: SELEÇÃO -->
+        <div id="screen-select" class="glass rounded-2xl p-6 md:p-8 animate-fade-in hidden flex-col">
+            <div class="flex items-center justify-between gap-2 mb-2">
+                <button id="btn-back-config" class="shrink-0 whitespace-nowrap px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-sm font-bold transition">← Regras</button>
+                <h2 id="select-title" tabindex="-1" class="text-xl md:text-2xl font-bold text-center text-emerald-400 focus:outline-none">Escolha o seu Clube</h2>
+                <span class="w-[76px]"></span>
+            </div>
+            <p id="select-info" class="text-center text-slate-400 text-sm mb-4"></p>
+            <input type="text" id="search-team" placeholder="Pesquisar time ou país..."
+                class="mb-4 block mx-auto px-6 py-3 rounded-full bg-slate-800/80 border border-slate-600 text-white focus:outline-none focus:border-emerald-500 w-full max-w-lg shadow-lg">
+            <div id="conf-filter" class="flex flex-wrap justify-center gap-2 mb-4"></div>
+            <p id="teams-empty" class="hidden text-center text-slate-400 py-10">Nenhum clube encontrado. Tente outro nome, país (ex.: Brasil) ou confederação.</p>
+            <div id="teams-grid"
+                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4 max-h-[60vh] overflow-y-auto p-2 pb-24 scrollbar-thin">
+                <!-- Injetado via JS -->
+            </div>
+
+        </div>
+
+        <!-- Fora do painel .glass: backdrop-filter num ancestral prende position:fixed ao painel -->
+        <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[30] hidden" id="div-confirm-teams">
+            <button id="btn-confirm-teams"
+                class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black py-4 px-8 md:px-10 rounded-full shadow-[0_0_25px_rgba(16,185,129,0.5)] transition-all transform hover:scale-105 active:scale-95 text-lg md:text-xl flex items-center gap-3 whitespace-nowrap">
+                <span class="text-2xl">🏆</span> <span>Iniciar Temporada (<span id="count-teams">0</span>)</span>
+            </button>
+        </div>
+
+        <!-- TELA 2: DASHBOARD -->
+        <div id="screen-dashboard" class="hidden animate-fade-in flex-1 flex flex-col">
+            <div
+                class="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800/80 rounded-2xl p-5 mb-6 border border-slate-700 shadow-xl">
+                <div class="flex items-center gap-5 min-w-0 w-full md:w-auto">
+                    <img id="dash-logo" src="" alt="" class="tm-logo-lg bg-white/10 rounded-full p-2 border border-slate-600 shrink-0">
+                    <div class="flex flex-col min-w-0">
+                        <div class="relative">
+                            <select id="dash-team-select" aria-label="Clube controlado"
+                                class="w-full bg-slate-700/50 text-white font-black text-lg md:text-3xl text-ellipsis overflow-hidden rounded border border-slate-600 focus:outline-none focus:border-emerald-500 p-1 pr-8 mb-1 cursor-pointer appearance-none">
+                            </select>
+                            <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
+                        </div>
+                        <p id="dash-phase" tabindex="-1" class="focus:outline-none text-emerald-400 font-bold uppercase tracking-widest text-xs md:text-sm mt-1">Fase de Grupos</p>
+                        <p id="dash-team-status" class="text-slate-400 text-xs mt-1"></p>
+                        <p id="dash-super" class="hidden text-xs text-amber-300 font-bold mt-1 cursor-help" title="pelos OVRs do simulador: a chance de ir tão bem em cada um destes jogos, um a um"></p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button id="btn-draw"
+                        class="hidden bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all text-lg border border-fuchsia-400/50">
+                        🎱 Sorteio da Fase
+                    </button>
+                    <button id="btn-simulate-match"
+                        class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 px-6 rounded-xl shadow-lg transition-all text-lg border border-slate-600">
+                        Simular Rodada
+                    </button>
+                    <button id="btn-play-match"
+                        class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all transform hover:scale-105 active:scale-95 text-lg flex items-center gap-2">
+                        <span>🎮</span> Jogar
+                    </button>
+                    <button id="btn-show-champion"
+                        class="hidden bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 font-black py-3 px-8 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.35)] transition-all text-lg">
+                        🏆 Ver Campeão
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+                <!-- Próximo Jogo -->
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 flex flex-col justify-start gap-6 self-start">
+                    <div>
+                        <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-4">Próximo Confronto</h4>
+                        <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-700/80 text-center">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex flex-col items-center w-2/5">
+                                    <img id="next-home-logo" src="" alt="" class="tm-logo mb-2 bg-white/10 rounded-full p-1">
+                                    <span class="font-bold text-sm truncate w-full text-center" id="next-match-home">Casa</span>
+                                    <span class="text-[10px] text-slate-500 font-bold" id="next-home-ovr"></span>
+                                </div>
+                                <span class="text-slate-500 font-black text-xl" id="next-match-vs">VS</span>
+                                <div class="flex flex-col items-center w-2/5">
+                                    <img id="next-away-logo" src="" alt="" class="tm-logo mb-2 bg-white/10 rounded-full p-1">
+                                    <span class="font-bold text-sm truncate w-full text-center" id="next-match-away">Fora</span>
+                                    <span class="text-[10px] text-slate-500 font-bold" id="next-away-ovr"></span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-emerald-500 font-semibold uppercase tracking-widest bg-emerald-900/30 py-1 px-2 rounded-full border border-emerald-500/20"
+                                id="next-match-context">Grupo X</p>
+                            <div id="next-match-odds" class="hidden mt-4 text-left">
+                                <div class="flex h-2.5 rounded-full overflow-hidden bg-slate-800" id="odds-bar"></div>
+                                <div class="flex justify-between gap-1 text-[11px] font-semibold text-slate-400 mt-1.5" id="odds-legend"></div>
+                                <p class="text-[10px] text-slate-500 mt-1">Probabilidades do simulador (pelo OVR). Jogando ao vivo, sua habilidade muda as chances.</p>
+                                <div id="next-scenarios" class="hidden mt-2 text-[11px] text-slate-300 bg-slate-800/70 border border-slate-700 rounded-lg px-2 py-1.5"></div>
+                                <div id="next-skill" class="hidden mt-2 text-[10px] text-slate-400 leading-snug"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Campanha no Torneio</h4>
+                        <div class="grid grid-cols-6 gap-1 text-center" id="dash-campaign"></div>
+                        <button id="dash-mc" type="button" class="hidden w-full mt-3 flex items-center justify-between gap-2 text-left text-xs bg-slate-900/60 border border-slate-700 hover:border-slate-500 rounded-lg px-3 py-2 min-h-[44px] transition"></button>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        <button id="btn-view-groups"
+                            class="min-h-[44px] bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg border border-slate-600 transition">Ver Todos os Grupos</button>
+                        <button id="btn-view-bracket"
+                            class="min-h-[44px] bg-fuchsia-900/50 hover:bg-fuchsia-800/50 text-fuchsia-300 font-semibold py-2 px-4 rounded-lg border border-fuchsia-500/30 transition hidden">Ver Chaveamento</button>
+                        <button id="btn-view-history"
+                            class="min-h-[44px] bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-300 font-semibold py-2 px-4 rounded-lg border border-indigo-500/30 transition">Histórico de Resultados</button>
+                        <button id="btn-view-stats"
+                            class="min-h-[44px] bg-cyan-900/40 hover:bg-cyan-800/40 text-cyan-300 font-semibold py-2 px-4 rounded-lg border border-cyan-500/30 transition">Estatísticas do Torneio</button>
+                        <button id="btn-view-odds"
+                            class="min-h-[44px] bg-violet-900/40 hover:bg-violet-800/40 text-violet-300 font-semibold py-2 px-4 rounded-lg border border-violet-500/30 transition">📊 Probabilidades</button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btn-view-hall"
+                                class="min-h-[44px] bg-amber-900/30 hover:bg-amber-800/40 text-amber-200 font-semibold py-2 px-3 rounded-lg border border-amber-500/30 transition text-sm">🏛️ Galeria</button>
+                            <button id="btn-share"
+                                class="min-h-[44px] bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2 px-3 rounded-lg border border-slate-600 transition text-sm">📋 Copiar resumo</button>
+                        </div>
+                        <button id="btn-new-tournament"
+                            class="min-h-[44px] bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold py-2 px-4 rounded-lg border border-red-500/20 transition text-sm">Novo Torneio</button>
+                        <p id="save-note" class="text-[11px] text-slate-500 text-center">💾 O progresso é salvo automaticamente neste navegador.</p>
+                    </div>
+                </div>
+
+                <!-- Tabela do Sistema Suíço -->
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-swiss-view">
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-1">Classificação - <span class="text-indigo-400">Sistema Suíço</span></h4>
+                    <p class="text-slate-500 text-xs mb-4">3 vitórias classificam · 3 derrotas eliminam · cada rodada só cruza times com a mesma campanha</p>
+                    <div class="table-scroll flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin" id="swiss-table-container"></div>
+                </div>
+
+                <!-- Tabela do Grupo -->
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden" id="dash-group-view">
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-4">Classificação - <span
+                            id="table-group-name" class="text-emerald-400">Grupo</span></h4>
+                    <div class="table-scroll scrollbar-thin">
+                        <table class="w-full text-left border-collapse min-w-[560px]">
+                            <thead>
+                                <tr class="text-slate-500 text-xs border-b border-slate-700/50">
+                                    <th class="pb-3 font-semibold sticky-col bg-slate-800 z-20 pl-2 whitespace-nowrap">#&nbsp; Clube</th>
+                                    <th class="pb-3 font-semibold text-center w-10">PTS</th>
+                                    <th class="pb-3 font-semibold text-center w-8">J</th>
+                                    <th class="pb-3 font-semibold text-center w-8">V</th>
+                                    <th class="pb-3 font-semibold text-center w-8">E</th>
+                                    <th class="pb-3 font-semibold text-center w-8">D</th>
+                                    <th class="pb-3 font-semibold text-center w-8">GP</th>
+                                    <th class="pb-3 font-semibold text-center w-8">GC</th>
+                                    <th class="pb-3 font-semibold text-center w-10">SG</th>
+                                    <th class="pb-3 font-semibold text-center">Últimos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="group-table-body" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-3" id="group-legend"></p>
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mt-6 mb-3" id="group-round-title">Jogos da Rodada</h4>
+                    <div class="flex flex-col gap-2" id="group-round-list"></div>
+                </div>
+
+                <!-- Mata-mata -->
+                <div class="glass rounded-2xl p-4 sm:p-6 col-span-1 lg:col-span-2 overflow-hidden hidden" id="dash-ko-view">
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-1" id="ko-view-title">Mata-Mata</h4>
+                    <p class="text-slate-500 text-xs mb-4" id="ko-view-subtitle"></p>
+                    <div class="flex flex-col gap-2 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin" id="ko-view-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA 3: SIMULADOR DE JOGO -->
+        <div id="screen-match" role="dialog" aria-modal="true" aria-label="Partida ao vivo"
+            class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div id="match-card" tabindex="-1" data-autofocus
+                class="focus:outline-none w-full max-w-4xl glass rounded-3xl border border-slate-600 overflow-hidden shadow-2xl flex flex-col h-[94vh] sm:h-[88vh]">
+
+                <div id="match-header" class="shrink-0 bg-gradient-to-b from-slate-800 to-slate-900 p-4 md:p-8 border-b border-slate-700 relative">
+                    <button id="btn-live-sound" type="button" aria-pressed="true" aria-label="Som ligado" title="Som (tecla M)"
+                        class="icon-btn absolute top-1.5 left-2 md:top-3 md:left-4">🔊</button>
+                    <div class="absolute top-3 right-4 md:top-4 md:right-6 text-emerald-400 font-black text-lg md:text-2xl tabular-nums" id="match-clock">00'</div>
+                    <div class="text-center text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 md:mb-6 px-14 md:px-20"
+                        id="match-header-context">Rodada 1</div>
+
+                    <div class="flex justify-between items-center gap-2 md:gap-8">
+                        <div class="flex flex-col items-center flex-1 min-w-0">
+                            <img id="sim-home-logo" src="" alt="" class="tm-logo-lg mb-2 md:mb-3">
+                            <h2 class="text-sm sm:text-base md:text-3xl font-black text-center leading-tight w-full [overflow-wrap:normal] [hyphens:auto]" lang="pt-BR" id="sim-home-name">Casa</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <p class="text-xs text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded" id="sim-home-ovr">OVR</p>
+                                <span id="sim-home-you" class="hidden text-[10px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded">VOCÊ</span>
+                            </div>
+                        </div>
+
+                        <div
+                            class="shrink-0 flex items-center gap-2 md:gap-3 bg-black/40 px-3 md:px-6 py-2 md:py-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                            <span class="text-4xl md:text-7xl font-black text-white w-10 md:w-14 text-center tabular-nums" id="sim-home-score">0</span>
+                            <span class="text-slate-600 font-black text-2xl md:text-3xl">-</span>
+                            <span class="text-4xl md:text-7xl font-black text-white w-10 md:w-14 text-center tabular-nums" id="sim-away-score">0</span>
+                        </div>
+
+                        <div class="flex flex-col items-center flex-1 min-w-0">
+                            <img id="sim-away-logo" src="" alt="" class="tm-logo-lg mb-2 md:mb-3">
+                            <h2 class="text-sm sm:text-base md:text-3xl font-black text-center leading-tight w-full [overflow-wrap:normal] [hyphens:auto]" lang="pt-BR" id="sim-away-name">Fora</h2>
+                            <div class="flex items-center gap-1 mt-1">
+                                <p class="text-xs text-slate-400 font-bold bg-slate-800 px-2 py-0.5 rounded" id="sim-away-ovr">OVR</p>
+                                <span id="sim-away-you" class="hidden text-[10px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded">VOCÊ</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Placar dos pênaltis em linha própria (no celular ele cobria os nomes) -->
+                    <div id="pen-board" class="hidden mt-3 text-[11px] font-bold text-slate-300 flex flex-col gap-1 items-center"></div>
+                </div>
+
+                <div class="shrink-0 w-full h-1.5 bg-slate-800">
+                    <div id="match-progress" class="h-full bg-emerald-500 w-0 transition-all duration-100 ease-linear"></div>
+                </div>
+
+                <!-- Chance minuto a minuto: o que "Pular para o Fim" sortearia a partir do placar e do tempo restante -->
+                <div id="match-viz" class="shrink-0 px-3 md:px-6 pt-2">
+                    <div id="wp-wrap" class="relative">
+                        <svg id="wp-svg" viewBox="0 0 120 40" preserveAspectRatio="none" role="img" aria-label="Chance ao longo do jogo"
+                            class="block w-full h-14 md:h-[72px] rounded bg-slate-900/70"></svg>
+                        <div id="wp-marks" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
+                    </div>
+                    <div id="wp-legend" class="flex justify-between gap-2 text-[10px] md:text-[11px] font-semibold text-slate-400 mt-1 tabular-nums"></div>
+                    <p id="prancheta" class="hidden text-[10px] md:text-[11px] text-slate-400 text-center tabular-nums" title="pelo simulador (conversão média de 60%); seus reflexos mudam isso"></p>
+                    <p id="wp-caption" class="text-[9px] md:text-[10px] text-slate-500 text-center leading-tight">Chance se o resto do jogo fosse simulado (igual a Pular para o Fim). Seus reflexos mudam isso.</p>
+                </div>
+
+                <div class="flex-1 min-h-[3rem] p-4 md:p-6 overflow-y-auto flex flex-col gap-3 scrollbar-thin" id="match-events"></div>
+
+                <div id="match-footer" class="shrink-0 p-3 md:p-5 bg-slate-900 border-t border-slate-700 flex flex-wrap justify-center items-center gap-3">
+                    <div id="speed-controls" class="flex items-center gap-1 bg-slate-800 rounded-xl p-1 border border-slate-700" role="group" aria-label="Velocidade">
+                        <button data-speed="1" title="Velocidade 1x (tecla 1)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">1x</button>
+                        <button data-speed="2" title="Velocidade 2x (tecla 2)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">2x</button>
+                        <button data-speed="4" title="Velocidade 4x (tecla 4)" class="speed-btn px-3 py-2 rounded-lg text-xs font-black text-slate-300">4x</button>
+                    </div>
+                    <div id="live-tac" class="flex items-center gap-1 bg-slate-800 rounded-xl p-1 border border-slate-700" role="group" aria-label="Postura">
+                        <button data-tac="def" aria-label="Retranca (tecla R)" title="Retranca (tecla R): −25% de gols esperados para os dois lados" class="tac-btn">🛡️</button>
+                        <button data-tac="bal" aria-label="Equilibrado (tecla E)" title="Equilibrado (tecla E)" class="tac-btn">⚖️</button>
+                        <button data-tac="att" aria-label="Ofensivo (tecla O)" title="Ofensivo (tecla O): +30% de gols esperados para os dois lados" class="tac-btn">⚔️</button>
+                    </div>
+                    <button id="btn-live-settings" type="button" aria-label="Preferências" title="Preferências" class="icon-btn">⚙️</button>
+                    <button id="btn-skip-match"
+                        class="px-6 md:px-8 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition">Pular para o Fim</button>
+                    <button id="btn-sim-pens"
+                        class="hidden px-6 md:px-8 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-bold transition">Simular Pênaltis</button>
+                    <button id="btn-finish-match"
+                        class="px-6 md:px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black transition hidden shadow-lg shadow-emerald-500/30">Próximo Jogo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MINIGAME OVERLAY (fora do card para o título não ser cortado) -->
+        <div id="minigame-overlay" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="mg-title"
+            class="hidden fixed inset-0 bg-slate-950/90 z-[75] flex p-4 select-none overflow-y-auto focus:outline-none">
+          <!-- m-auto: centraliza quando cabe e deixa rolar quando a tela é baixa (celular deitado) -->
+          <div class="m-auto w-full flex flex-col items-center">
+            <h2 id="mg-title"
+                class="text-2xl sm:text-4xl font-black text-white text-center drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]">
+                CHANCE DE GOL!</h2>
+            <p id="mg-subtitle" class="text-slate-300 text-sm sm:text-base text-center mt-2 mb-4 min-h-[1.5rem] max-w-2xl"></p>
+            <div id="minigame-box"
+                class="relative w-full max-w-2xl aspect-[4/3] sm:aspect-[2/1] border-4 border-b-0 border-white/80 rounded-t shadow-[inset_0_0_50px_rgba(255,255,255,0.2)] bg-emerald-900/20 overflow-hidden">
+                <div class="absolute inset-0 opacity-20 pointer-events-none goal-net"></div>
+                <div id="mg-targets" class="absolute inset-0"></div>
+            </div>
+            <!-- Resultado do lance abaixo do gol, para não esconder onde a bola e o goleiro foram -->
+            <div id="mg-feedback" aria-live="assertive" class="min-h-[2.5rem] sm:min-h-[3rem] mt-2 text-center text-2xl sm:text-4xl font-black"></div>
+            <div class="w-full max-w-md mt-2">
+                <div class="h-2 bg-slate-800 rounded-full overflow-hidden shadow-lg">
+                    <div id="mg-timer-bar" class="h-full bg-emerald-500" style="width:100%"></div>
+                </div>
+            </div>
+            <button id="mg-sim-pens" class="hidden mt-4 px-5 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-bold" aria-label="Simular o resto dos pênaltis"><span class="mg-sim-long">Simular o resto dos pênaltis</span><span class="mg-sim-short">⏭ Simular</span></button>
+          </div>
+        </div>
+
+        <!-- TELA 4: SORTEIO INTERATIVO -->
+        <div id="screen-draw"
+            class="hidden fixed inset-0 bg-slate-950/95 z-[60] overflow-y-auto backdrop-blur-xl">
+            <div class="min-h-full flex flex-col items-center justify-center p-4">
+                <h2 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-indigo-500 uppercase tracking-tighter mb-2 text-center"
+                    id="draw-title">Sorteio do Mata-Mata</h2>
+                <p class="text-slate-400 mb-2 text-center" id="draw-subtitle">Definindo os confrontos...</p>
+                <p class="text-slate-500 mb-6 text-xs font-bold uppercase tracking-widest" id="draw-progress"></p>
+
+                <div class="glass w-full max-w-5xl rounded-3xl p-6 md:p-8 border border-slate-700 flex flex-col items-center">
+
+                    <div class="flex justify-center items-center gap-4 md:gap-8 mb-8 w-full min-h-[200px]" id="draw-reveal-area">
+                        <div class="flex flex-col items-center opacity-0 transition-opacity duration-500 w-2/5" id="draw-team-a">
+                            <img id="dt-logo-a" src="" alt="" class="tm-logo-lg mb-6 transform scale-150">
+                            <h3 class="text-lg md:text-2xl font-bold text-center" id="dt-name-a">Time A</h3>
+                        </div>
+
+                        <div class="text-4xl font-black text-slate-600 opacity-0" id="draw-vs">VS</div>
+
+                        <div class="flex flex-col items-center opacity-0 transition-opacity duration-500 w-2/5" id="draw-team-b">
+                            <img id="dt-logo-b" src="" alt="" class="tm-logo-lg mb-6 transform scale-150">
+                            <h3 class="text-lg md:text-2xl font-bold text-center" id="dt-name-b">Time B</h3>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-4 w-full justify-center mt-4">
+                        <button id="btn-draw-all"
+                            class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-4 px-8 rounded-full shadow-lg transition-all text-xl flex items-center gap-2 justify-center disabled:opacity-50">
+                            <span class="text-xl">⚡</span> Sortear Tudo
+                        </button>
+                        <button id="btn-draw-next" data-autofocus
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-10 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all transform hover:scale-105 active:scale-95 text-xl flex items-center gap-3 justify-center disabled:opacity-50">
+                            <span class="text-2xl">⚽</span> Sortear Confronto
+                        </button>
+                        <button id="btn-finish-draw" data-autofocus
+                            class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-all text-xl justify-center">
+                            Ver Chaveamento Completo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 max-h-[30vh] overflow-y-auto p-2 scrollbar-thin"
+                    id="draw-history"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: TODOS OS GRUPOS -->
+        <div id="modal-groups"
+            class="hidden fixed inset-0 bg-black/95 z-[45] p-4 md:p-8 overflow-y-auto">
+            <div class="max-w-[1400px] mx-auto glass rounded-2xl p-6 relative border border-slate-600">
+                <button data-close="modal-groups" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-6 text-center text-emerald-400 px-10">Classificação Geral</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="all-groups-grid"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: RESULTADOS DA RODADA -->
+        <div id="modal-round-results"
+            class="hidden fixed inset-0 bg-black/95 z-[70] p-4 md:p-8 overflow-y-auto">
+            <div
+                class="w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button id="btn-close-results" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-2 text-center text-emerald-400 px-10" id="rr-title">Resultados da Rodada</h2>
+                <p class="text-slate-400 text-center mb-6 text-sm" id="rr-subtitle">Todos os jogos desta fase</p>
+                <select id="history-filter" aria-label="Filtrar histórico"
+                    class="hidden mb-6 mx-auto block px-4 py-2 rounded-lg bg-slate-800 border border-slate-600 text-white focus:outline-none focus:border-emerald-500 w-full max-w-sm shadow-lg"></select>
+
+                <div id="rr-list" class="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin"></div>
+
+                <div class="mt-8 flex justify-center">
+                    <button id="btn-advance-round" data-autofocus
+                        class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all text-lg w-full md:w-auto">
+                        Avançar Rodada
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CHAVEAMENTO -->
+        <div id="modal-bracket"
+            class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-auto">
+            <button data-close="modal-bracket" aria-label="Fechar"
+                class="fixed top-4 right-4 md:top-8 md:right-8 bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white z-[86] w-11 h-11 flex items-center justify-center font-bold shadow-[0_0_15px_rgba(0,0,0,0.8)] border border-slate-500">X</button>
+            <div
+                class="w-max min-w-full mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 flex flex-col mt-12 mb-12">
+                <h2
+                    class="text-2xl md:text-3xl font-black mb-8 text-center text-fuchsia-400 uppercase tracking-widest sticky left-0 w-[calc(100vw-5rem)] md:w-[calc(100vw-8rem)]">
+                    Chaveamento</h2>
+                <div class="flex gap-8" id="bracket-container"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: DISTRIBUIÇÃO POR CONTINENTE -->
+        <div id="modal-continent-dist"
+            class="hidden fixed inset-0 bg-black/95 z-[70] p-4 md:p-8 overflow-y-auto">
+            <div
+                class="w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-continent-dist" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-2 text-center text-indigo-400 uppercase px-10">Preencher Vagas Extras</h2>
+                <p class="text-slate-400 text-center mb-6 text-sm">Quantos clubes NPCs de cada continente devem ser chamados?</p>
+
+                <div class="flex flex-wrap justify-between items-center mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700 gap-3">
+                    <h4 class="text-emerald-400 font-bold text-sm uppercase">Vagas Livres</h4>
+                    <button id="btn-auto-continents" class="ml-auto px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold">Distribuir automaticamente</button>
+                    <div class="bg-slate-950 px-4 py-2 rounded-full border border-slate-600 text-lg font-black shadow-inner">
+                        <span id="mod-slots-remaining" class="text-emerald-400 tabular-nums">0</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-6" id="continent-inputs"></div>
+
+                <div class="mt-8 flex justify-center">
+                    <button id="btn-start-modal-tourney" disabled
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 px-10 rounded-xl shadow-lg transition-all text-xl w-full md:w-auto uppercase tracking-wider opacity-50 cursor-not-allowed">
+                        Iniciar Torneio
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CONFRONTO DIRETO (ESCOLHA DE LADO) -->
+        <div id="modal-side" class="hidden fixed inset-0 bg-black/90 z-[90] p-4 flex items-center justify-center backdrop-blur-md">
+            <div class="w-full max-w-xl glass rounded-3xl p-6 md:p-8 border border-amber-500/40 shadow-2xl text-center">
+                <p class="text-amber-400 font-black uppercase tracking-widest text-sm">Confronto direto!</p>
+                <h2 class="text-2xl font-black mt-1 mb-2">Dois clubes seus se enfrentam</h2>
+                <p class="text-slate-400 text-sm mb-6">Escolha com qual você quer jogar. O outro será controlado pela máquina.</p>
+                <div class="grid grid-cols-2 gap-4" id="side-options"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: CAMPEÃO -->
+        <div id="modal-champion" class="hidden fixed inset-0 bg-black/95 z-[72] p-4 md:p-8 overflow-y-auto">
+            <div id="confetti-layer" class="pointer-events-none"></div>
+            <div class="relative z-[2] w-full max-w-3xl mx-auto glass rounded-3xl p-6 md:p-10 border border-yellow-500/40 shadow-[0_0_60px_rgba(250,204,21,0.15)] mt-4 mb-4 text-center">
+                <button data-close="modal-champion" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <div class="text-7xl md:text-8xl trophy">🏆</div>
+                <p class="text-yellow-400 font-black uppercase tracking-[0.3em] text-xs mt-4">Campeão do Mundial</p>
+                <div class="flex flex-col items-center mt-4">
+                    <img id="champ-logo" src="" alt="" class="tm-logo-lg w-28 h-28 bg-white/10 rounded-full p-2">
+                    <h2 id="champ-name" class="text-3xl md:text-5xl font-black mt-3 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-amber-500">—</h2>
+                    <p id="champ-note" class="text-slate-300 mt-2"></p>
+                    <p id="champ-user-msg" class="hidden mt-3 font-black text-emerald-400 text-lg"></p>
+                </div>
+                <div id="champ-ach" class="hidden mt-4"></div>
+                <div class="grid grid-cols-6 gap-1 mt-6 max-w-md mx-auto" id="champ-campaign"></div>
+                <p id="champ-super" class="hidden mt-3 text-amber-300 font-bold text-sm"></p>
+                <div class="mt-6 text-left">
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Caminho até o título</h4>
+                    <div class="flex flex-col gap-2" id="champ-path"></div>
+                </div>
+                <div class="mt-6 text-left" id="champ-user-teams-wrap">
+                    <h4 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-3">Seus clubes</h4>
+                    <div class="flex flex-col gap-2" id="champ-user-teams"></div>
+                </div>
+                <div class="mt-8 flex flex-wrap justify-center gap-3">
+                    <button id="champ-btn-bracket" class="px-5 py-3 rounded-xl bg-fuchsia-900/60 hover:bg-fuchsia-800/60 text-fuchsia-200 font-bold border border-fuchsia-500/30">Ver Chaveamento</button>
+                    <button id="champ-btn-stats" class="px-5 py-3 rounded-xl bg-cyan-900/50 hover:bg-cyan-800/50 text-cyan-200 font-bold border border-cyan-500/30">Estatísticas</button>
+                    <button id="champ-btn-hall" class="px-5 py-3 rounded-xl bg-amber-900/40 hover:bg-amber-800/50 text-amber-200 font-bold border border-amber-500/30">🏛️ Galeria</button>
+                    <button id="champ-btn-share" class="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-600">📋 Copiar resumo</button>
+                    <button id="champ-btn-rematch" class="px-5 py-3 rounded-xl bg-indigo-700 hover:bg-indigo-600 text-white font-black">🔁 Revanche (mesmas regras e clubes)</button>
+                    <button id="champ-btn-new" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black">Novo Torneio</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: ESTATÍSTICAS -->
+        <div id="modal-stats" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-4xl mx-auto glass rounded-3xl p-6 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-stats" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-6 text-center text-cyan-400 px-10">Estatísticas do Torneio</h2>
+                <div id="stats-content"></div>
+            </div>
+        </div>
+
+        <!-- PLANTÃO DA RODADA: placar de todos os jogos (resultados já sorteados e salvos antes do replay) -->
+        <div id="round-ticker" class="hidden fixed inset-0 bg-black/95 z-[65] p-3 md:p-8 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="tk-title">
+            <div class="w-full max-w-3xl mx-auto glass rounded-3xl p-4 md:p-6 border border-slate-600 shadow-2xl mt-2 mb-2">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
+                    <span id="tk-clock" class="text-emerald-400 font-black text-2xl md:text-3xl tabular-nums w-16">0'</span>
+                    <div class="min-w-0 flex-1 order-last basis-full sm:order-none sm:basis-0">
+                        <p class="hidden sm:block text-[10px] uppercase tracking-widest text-slate-500 font-bold">Plantão da rodada</p>
+                        <h2 id="tk-title" class="font-black text-sm sm:text-base md:text-xl leading-tight">Rodada</h2>
+                    </div>
+                    <p class="sm:hidden flex-1 text-[10px] uppercase tracking-widest text-slate-500 font-bold">Plantão da rodada</p>
+                    <button id="tk-fast" type="button" aria-pressed="false" class="min-h-[44px] min-w-[44px] px-3 rounded-lg bg-slate-800 border border-slate-600 text-xs font-black">2x</button>
+                    <button id="tk-skip" type="button" data-autofocus class="min-h-[44px] px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-black text-sm">Pular ▶▶</button>
+                </div>
+                <div id="tk-list" class="flex flex-col gap-1.5"></div>
+                <p id="tk-more" class="hidden text-center text-xs text-slate-500 mt-2"></p>
+                <div id="tk-tables" class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4"></div>
+            </div>
+        </div>
+
+        <!-- MODAL: PREFERÊNCIAS -->
+        <div id="modal-settings" class="hidden fixed inset-0 bg-black/95 z-[86] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-settings" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl font-black mb-4 text-center text-slate-200 px-10">Preferências</h2>
+                <div id="settings-rows" class="flex flex-col gap-2"></div>
+                <div class="mt-5 bg-slate-900/60 border border-slate-700 rounded-xl p-4">
+                    <h3 class="text-slate-400 font-bold uppercase tracking-wider text-xs mb-2">Atalhos de teclado</h3>
+                    <ul class="text-xs text-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                        <li><kbd>1</kbd> <kbd>2</kbd> <kbd>4</kbd> velocidade da partida</li>
+                        <li><kbd>P</kbd> pular para o fim</li>
+                        <li><kbd>R</kbd> <kbd>E</kbd> <kbd>O</kbd> postura: Retranca, Equilibrado, Ofensivo</li>
+                        <li><kbd>M</kbd> som liga/desliga</li>
+                        <li>Ataque: <kbd>1</kbd>…<kbd>5</kbd> cantos, da esquerda para a direita</li>
+                        <li>Defesa: <kbd>Espaço</kbd> ou <kbd>Enter</kbd> na bola</li>
+                        <li>Pênalti: <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> / <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> (ou teclado numérico)</li>
+                        <li>Goleiro no pênalti: <kbd>←</kbd> <kbd>↓</kbd> <kbd>→</kbd></li>
+                        <li><kbd>Esc</kbd> fecha janelas · pula o plantão</li>
+                    </ul>
+                </div>
+                <p class="text-[11px] text-slate-500 text-center mt-4">Preferências salvas só neste navegador.</p>
+            </div>
+        </div>
+
+        <!-- MODAL: PROBABILIDADES DO TORNEIO -->
+        <div id="modal-odds" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-4xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-odds" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-violet-300 px-10">Probabilidades do Torneio</h2>
+                <p id="odds-sub" class="text-center text-slate-400 text-xs mb-4"></p>
+                <div id="odds-tabs" role="tablist" class="flex justify-center gap-2 mb-4"></div>
+                <div id="odds-content"></div>
+                <p class="text-[11px] text-slate-500 mt-4 text-center">N simulações do restante com o mesmo motor do botão Simular; sorteios futuros refeitos em cada simulação. Seus jogos ao vivo dependem dos minigames; aqui eles são simulados. Postura: a escolhida para o próximo jogo, depois Equilibrado. Toque num valor para ver a margem de erro.</p>
+            </div>
+        </div>
+
+        <!-- MODAL: GALERIA DE CAMPEÕES -->
+        <div id="modal-hall" class="hidden fixed inset-0 bg-black/95 z-[85] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-3xl mx-auto glass rounded-3xl p-4 md:p-8 relative border border-amber-500/30 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-hall" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-2xl md:text-3xl font-black mb-1 text-center text-amber-300 px-10">🏛️ Galeria de Campeões</h2>
+                <p class="text-center text-slate-400 text-xs mb-4">Títulos conquistados nas suas simulações neste navegador, não são títulos reais.</p>
+                <div id="hall-tabs" role="tablist" aria-label="Galeria" class="flex flex-wrap justify-center gap-2 mb-4"></div>
+                <div id="hall-content"></div>
+                <div class="mt-6 flex justify-center">
+                    <button id="btn-hall-clear" class="px-4 py-2 min-h-[44px] rounded-lg bg-transparent hover:bg-red-900/30 text-red-300/80 font-semibold border border-red-500/20 text-sm">Apagar galeria</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: TEXTO PARA COPIAR (quando a área de transferência não está disponível) -->
+        <div id="modal-share" class="hidden fixed inset-0 bg-black/95 z-[89] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-share" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <h2 class="text-xl font-black mb-2 text-center px-10">Resumo do torneio</h2>
+                <p class="text-center text-slate-400 text-xs mb-3">Toque e segure para copiar.</p>
+                <textarea id="share-text" readonly rows="12" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-200"></textarea>
+            </div>
+        </div>
+
+        <!-- MODAL: RELATÓRIO DA PARTIDA -->
+        <div id="modal-report" aria-label="Relatório da partida" class="hidden fixed inset-0 bg-black/95 z-[88] p-4 md:p-8 overflow-y-auto">
+            <div class="w-full max-w-lg mx-auto glass rounded-3xl p-5 md:p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
+                <button data-close="modal-report" aria-label="Fechar"
+                    class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
+                <div id="report-content"></div>
+            </div>
+        </div>
+
+        <!-- AVISO: o torneio foi alterado em outra aba (esta aba não grava mais para não sobrescrever) -->
+        <div id="modal-stale" class="hidden fixed inset-0 bg-black/90 z-[97] p-4 flex items-center justify-center" role="alertdialog" aria-modal="true" aria-labelledby="stale-title">
+            <div class="w-full max-w-md glass rounded-2xl p-6 border border-amber-500/50 shadow-2xl text-center">
+                <h3 id="stale-title" class="text-xl font-black mb-2 text-amber-300">O torneio mudou em outra aba</h3>
+                <p class="text-slate-300 text-sm mb-6">Para não apagar o que foi jogado lá, esta aba parou de salvar. Recarregue para continuar de onde o torneio está agora.</p>
+                <button id="btn-stale-reload" data-autofocus class="px-6 py-3 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black">Recarregar</button>
+            </div>
+        </div>
+
+        <!-- MODAL: CONFIRMAÇÃO GENÉRICA -->
+        <div id="modal-confirm" class="hidden fixed inset-0 bg-black/80 z-[95] p-4 flex items-center justify-center backdrop-blur-sm">
+            <div class="w-full max-w-md glass rounded-2xl p-6 border border-slate-600 shadow-2xl text-center">
+                <h3 id="confirm-title" class="text-xl font-black mb-2">Tem certeza?</h3>
+                <p id="confirm-text" class="text-slate-400 text-sm mb-6"></p>
+                <div class="flex justify-center gap-3">
+                    <button id="confirm-no" data-autofocus class="px-5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 font-bold">Cancelar</button>
+                    <button id="confirm-yes" class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-500 font-black">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sr-live" class="sr-only" aria-live="polite"></div>
+
+        <div id="toast" role="status" aria-live="polite" class="hidden fixed toast-pos inset-x-0 mx-auto w-fit z-[100] bg-slate-800 border border-slate-600 text-white font-bold px-5 py-3 rounded-xl shadow-2xl text-center max-w-[90vw]"></div>
+
+    </div>
+
+</body>
+
+</html>
