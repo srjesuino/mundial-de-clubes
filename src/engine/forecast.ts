@@ -66,7 +66,8 @@ export function clinchStatus(t: Tournament, id: string, k = t.config.advancingPe
   if (t.phase !== 'GROUP') return null;
   const x = t.teams[id];
   const g = x?.group;
-  if (!g || !t.groups[g] || k >= t.groups[g].length) return null;
+  if (!g || !t.groups[g]) return null;
+  if (k >= t.groups[g].length) return 'in'; // a faixa cobre o grupo inteiro
   const ms = t.schedule[g].flat();
   const rem = (j: string) => ms.filter(m => !m.played && (m.home === j || m.away === j)).length;
   const others = t.groups[g].filter(j => j !== id);
@@ -125,6 +126,9 @@ function decided(t: Tournament, cols: Col[]): Record<string, string> {
   });
   return known;
 }
+
+/** Situações decididas para as colunas do formato (no fim do torneio, todas) */
+export const decidedNow = (t: Tournament): Record<string, string> => decided(t, columns(t));
 
 // ---------- Simulações ----------
 

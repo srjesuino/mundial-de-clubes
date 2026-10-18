@@ -1,7 +1,7 @@
 // Probabilidades do torneio: roda o Monte Carlo em pedaços (sem travar a tela), guarda e mostra
 import { isUser, team } from '../engine/core';
 import { qualifiedCount } from '../engine/config';
-import { canForecast, clinchStatus, forecastJob, forecastKey, formatChance, marginPP, storeForecast, type ForecastJob } from '../engine/forecast';
+import { canForecast, clinchStatus, decidedNow, forecastJob, forecastKey, formatChance, marginPP, storeForecast, type ForecastJob } from '../engine/forecast';
 import { sortGroupIds } from '../engine/groups';
 import { currentRoundMatches } from '../engine/tournament';
 import type { Forecast, Tournament } from '../engine/types';
@@ -133,6 +133,8 @@ function renderScenarios(): void {
     : cl === 'out' ? `<p class="text-red-300 font-bold">✗ ${league ? 'Sem chance de título' : 'Eliminado'} matematicamente</p>` : '';
   let line = '';
   const f = t.mc;
+  // já decidido pela matemática: o selo basta (cenários com '>99,9%' ao lado dele confundiriam)
+  if (cl) { el.innerHTML = badge; setHidden(el, false); return; }
   if (m && f && f.key === forecastKey(t) && f.cond[id]) {
     const what = league ? 'título' : 'classifica';
     const cell = (cls: 'V' | 'E' | 'D') => {
@@ -167,13 +169,14 @@ function cellButton(f: Forecast, id: string, ci: number): string {
   if (avg) return `<td class="px-1 py-1.5 text-center tabular-nums text-slate-300">${fmtBR(f.p[id]?.[ci] ?? 0, 1)}</td>`;
   const c = formatChance(f, id, ci);
   const tip = c.sure ? (c.text === '✓' ? 'já garantido' : 'sem chance') : `±${fmtBR(marginPP(c.p, f.n), 1)} p.p.`;
-  return `<td class="px-1 py-1 text-center"><button type="button" data-tip="${tip}" data-val="${c.text}" aria-label="${escapeHtml(f.cols[ci])}: ${c.text}" class="odds-cell min-h-[44px] w-full rounded px-1 tabular-nums ${c.sure ? (c.text === '✓' ? 'text-emerald-300 font-black' : 'text-slate-600') : 'text-slate-200 hover:bg-slate-700/60'}">${c.text}</button></td>`;
+  return `<td class="px-1 py-1 text-center"><button type="button" data-tip="${tip}" data-val="${c.text}" data-label="${escapeHtml(f.cols[ci])}" aria-label="${escapeHtml(f.cols[ci])}: ${c.text}" class="odds-cell min-h-[44px] w-full rounded px-1 tabular-nums ${c.sure ? (c.text === '✓' ? 'text-emerald-300 font-black' : 'text-slate-600') : 'text-slate-200 hover:bg-slate-700/60'}">${c.text}</button></td>`;
 }
 
 function renderOdds(): void {
   const t = store.t;
   if (!t) return;
-  const f = t.mc;
+  // no fim do torneio, o que já aconteceu aparece como ✓/— (a previsão antiga só preenche o que não se decide)
+  const f = t.mc && t.phase === 'END' ? { ...t.mc, known: decidedNow(t) } : t.mc;
   const sub = $('odds-sub'), content = $('odds-content'), tabs = $('odds-tabs');
   if (!f) {
     sub.textContent = '';
@@ -181,7 +184,9 @@ function renderOdds(): void {
     content.innerHTML = `<p class="text-center text-slate-400 py-8">${t.draw ? 'Disponível depois do sorteio.' : t.phase === 'END' ? 'Torneio encerrado.' : job ? `Calculando… ${fmtBR(job.done)}/${fmtBR(job.total)} simulações` : 'Calculando…'}</p>`;
     return;
   }
-  sub.textContent = `${fmtBR(f.n)} simulações · ${f.label}${t.phase === 'END' ? ' · última previsão antes do fim do torneio' : t.draw ? ' · antes do sorteio' : pending(t) ? ' · atualizando…' : ''}`;
+  sub.textContent = t.phase === 'END'
+    ? `Torneio encerrado: ✓/— mostram o que aconteceu · previsão anterior: ${fmtBR(f.n)} simulações, ${f.label}`
+    : `${fmtBR(f.n)} simulações · ${f.label}${t.draw ? ' · antes do sorteio' : pending(t) ? ' · atualizando…' : ''}`;
   const hasPos = Object.keys(f.pos).length > 0 && t.phase === 'GROUP';
   if (!hasPos) oddsTab = 'torneio';
   tabs.setAttribute('aria-label', 'Probabilidades');
@@ -226,6 +231,7 @@ function bindCells(root: HTMLElement): void {
     b.onclick = () => {
       const showingTip = b.textContent === b.dataset.tip;
       b.textContent = showingTip ? b.dataset.val! : b.dataset.tip!;
+      b.setAttribute('aria-label', `${b.dataset.label}: ${b.dataset.val}${showingTip ? '' : `, margem ${b.dataset.tip}`}`);
     };
   });
 }
@@ -257,6 +263,7 @@ function renderPositions(t: Tournament, f: Forecast): void {
   $<HTMLSelectElement>('pos-group').onchange = e => { posGroup = (e.target as HTMLSelectElement).value; renderPositions(t, f); };
   content.querySelectorAll<HTMLButtonElement>('.pos-cell').forEach(b => {
     b.onclick = () => { b.textContent = b.textContent === b.title ? b.dataset.short ?? '' : b.title; };
+    b.onfocus = () => { if (b.textContent !== b.title) b.textContent = b.title; };
   });
 }
 

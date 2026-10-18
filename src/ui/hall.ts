@@ -26,6 +26,7 @@ export function recordTournamentEnd(): void {
 // ---------- Copiar resumo ----------
 /** Área de transferência → execCommand → janela com o texto selecionado (sempre dentro do clique) */
 export function copyText(txt: string): void {
+  const opener = document.activeElement;
   const fallback = () => {
     let ok = false;
     try {
@@ -39,7 +40,7 @@ export function copyText(txt: string): void {
       ok = document.execCommand('copy');
       ta.remove();
     } catch { ok = false; }
-    if (ok) { toast('Resumo copiado!'); return; }
+    if (ok) { (opener as HTMLElement | null)?.focus?.({ preventScroll: true }); toast('Resumo copiado!'); return; }
     const box = $<HTMLTextAreaElement>('share-text');
     box.value = txt;
     showEl('modal-share');
@@ -146,6 +147,13 @@ function achTab(): string {
 }
 
 function renderHall(): void {
+  const a = document.activeElement as HTMLElement | null;
+  const keep = a?.closest('#hall-content') && a.dataset.diff ? `[data-diff="${a.dataset.diff}"]` : null;
+  drawHall();
+  if (keep) $('hall-content').querySelector<HTMLElement>(keep)?.focus({ preventScroll: true });
+}
+
+function drawHall(): void {
   const list = hof().list;
   const tabs = $('hall-tabs');
   tabs.innerHTML = TABS.map(([k, label]) => `<button type="button" role="tab" id="hall-tab-${k}" aria-controls="hall-content" data-tab="${k}" aria-selected="${tab === k}" tabindex="${tab === k ? 0 : -1}" class="min-h-[44px] px-3 rounded-lg text-sm font-bold border ${tab === k ? 'bg-amber-600 border-amber-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${label}</button>`).join('');

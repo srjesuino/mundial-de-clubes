@@ -178,6 +178,8 @@ export interface ClubSnap { id: string; name: string; country: string; ovr: numb
 export interface HofUser extends ClubSnap, Placement { st: Stats; sup: number; live: number }
 export interface HofEntry {
   id: string;
+  /** versão da escala de colocação (2 = 1001 − posição final) */
+  rv?: number;
   at: number;
   fmt: string;
   diff: Difficulty;
@@ -204,6 +206,7 @@ export function hofEntry(t: Tournament, now = Date.now()): HofEntry {
   const fmt = describeConfig(t.config);
   return {
     id: 'H' + now.toString(36),
+    rv: 2,
     at: now,
     fmt: fmt.ok ? fmt.text : '',
     diff: recordDiff(t),
@@ -256,7 +259,23 @@ export function normalizeHof(x: unknown): Hof | null {
   if (isRec(x.titles)) Object.entries(x.titles).forEach(([id, r]) => {
     if (isRec(r) && isStr(r.name) && isNum(r.t) && isNum(r.f)) titles[id] = { name: r.name, t: r.t, f: r.f };
   });
-  return { v: 1, list: x.list.filter(validEntry), titles };
+  const list = x.list.filter(validEntry);
+  list.forEach(e => { if (!e.rv) migrateRanks(e); });
+  return { v: 1, list, titles };
+}
+
+/** Entradas gravadas com a escala antiga de colocação: converte pela etapa (posição final de quem cai nela) */
+const OLD_STAGE_PLACE: Record<string, number> = {
+  'Final': 2, 'Semifinal': 3, 'Quartas de Final': 5, 'Oitavas de Final': 9, '16-avos de Final': 17, '32-avos de Final': 33
+};
+function migrateRanks(e: HofEntry): void {
+  e.users.forEach(u => {
+    if (u.rank >= 999) return; // campeão e vice valem igual nas duas escalas
+    const place = OLD_STAGE_PLACE[u.label];
+    // sem como saber a posição exata (fases de grupos, suíço, dupla eliminação antigos): metade de baixo da tabela
+    u.rank = 1001 - (place ?? Math.ceil(e.n / 2) + 1);
+  });
+  e.rv = 2;
 }
 
 export const validHof = (x: unknown): x is Hof => {

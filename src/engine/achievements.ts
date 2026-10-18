@@ -25,7 +25,7 @@ export const ACH: AchDef[] = [
   { k: 'lower', icon: '🪜', t: 'Da Lower ao topo', d: 'Seja campeão na dupla eliminação depois de perder um jogo.' },
   { k: 'league', icon: '📈', t: 'Regularidade', d: 'Seja campeão de pontos corridos.' },
   { k: 'max64', icon: '🏃', t: 'Maratona', d: 'Termine um torneio com 64 clubes.' },
-  { k: 'legend', icon: '👑', t: 'Lenda', d: 'Seja campeão no nível Lenda (o mais fácil que você usou) jogando ao vivo pelo menos metade dos jogos do clube.' }
+  { k: 'legend', icon: '👑', t: 'Lenda', d: 'Seja campeão no nível Lenda (o mais fácil que você usou) jogando ao vivo, até o fim, pelo menos metade dos jogos do clube (sem Pular para o Fim nem Simular Pênaltis).' }
 ];
 
 export interface Unlock { k: string; detail: string }

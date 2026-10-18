@@ -210,7 +210,9 @@ body {
     #mg-sim-pens { position: fixed; left: calc(env(safe-area-inset-left, 0px) + 8px); top: calc(env(safe-area-inset-top, 0px) + 8px); margin: 0; padding: 6px 12px; }
 }
 
-/* Botões de ícone (som, preferências) e de postura: área de toque de 44px */
+/* Botões de ícone (som, preferências) e de postura: área de toque de 44px.
+   Na camada de componentes, para que utilitários como .hidden continuem valendo sobre eles. */
+@layer components {
 .icon-btn {
     width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
     border-radius: 9999px; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(100, 116, 139, 0.6);
@@ -224,6 +226,16 @@ body {
 }
 .tac-btn:hover { background: rgba(51, 65, 85, 0.9); }
 .tac-btn[aria-pressed="true"] { background: #059669; color: #fff; }
+/* Nome de clube: no celular quebra em até 2 linhas (o primeiro nome sozinho pode ser ambíguo: Manchester...);
+   a partir de 640px, uma linha com reticências */
+.club-name {
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+    line-height: 1.15; overflow-wrap: break-word; min-width: 0;
+}
+@media (min-width: 640px) {
+    .club-name { display: block; white-space: nowrap; text-overflow: ellipsis; -webkit-line-clamp: unset; }
+}
+}
 kbd {
     display: inline-block; min-width: 1.4em; padding: 0 0.3em; border-radius: 4px; text-align: center;
     background: #1e293b; border: 1px solid #475569; border-bottom-width: 2px; font: 700 10px/1.6 ui-monospace, monospace; color: #e2e8f0;
@@ -249,14 +261,17 @@ kbd {
 #match-header .tm-logo-lg { background: rgba(255, 255, 255, 0.08); border-radius: 9999px; padding: 4px; }
 .mg-sim-short { display: none; }
 
+/* Ao percorrer a grade de clubes com Tab, o cartão focado não fica sob o botão fixo "Iniciar Temporada" */
+#teams-grid { scroll-padding-bottom: 6.5rem; }
+html { scroll-padding-bottom: 6.5rem; }
+
 @media (max-height: 560px) {
     #wp-svg { height: 28px; }
     #wp-caption { display: none; }
     /* celular deitado: escudos e rodapé compactos; o placar dos pênaltis em uma linha por time */
     #match-header .tm-logo-lg { display: none; }
     #match-footer { padding: 6px 10px; gap: 6px; }
-    #match-footer .icon-btn, #match-footer .tac-btn, #match-footer .speed-btn { min-height: 40px; }
-    #btn-skip-match, #btn-sim-pens, #btn-finish-match { padding-top: 8px; padding-bottom: 8px; }
+    #btn-skip-match, #btn-sim-pens, #btn-finish-match { padding-top: 6px; padding-bottom: 6px; min-height: 44px; }
     #pen-board { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 14px; row-gap: 2px; }
     #match-events { min-height: 4.5rem; }
     .mg-sim-long { display: none; }

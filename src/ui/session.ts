@@ -35,6 +35,7 @@ export function resetToConfig(): void {
   $('screen-sandbox-config').classList.add('flex-1');
   refreshConfigUI();
   window.scrollTo(0, 0);
+  $('sandbox-title').focus({ preventScroll: true });
 }
 
 /** Revanche: mesmas regras, mesmos clubes do usuário e a mesma distribuição por continente; o resto é refeito */

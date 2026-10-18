@@ -245,6 +245,7 @@ export function showConfigScreen(): void {
   hideEl('div-confirm-teams');
   refreshConfigUI();
   window.scrollTo(0, 0);
+  $('sandbox-title').focus({ preventScroll: true });
 }
 
 export function initSetupScreens(): void {
@@ -267,6 +268,7 @@ export function initSetupScreens(): void {
     $('screen-select').classList.add('flex', 'flex-1');
     enterSelectScreen();
     window.scrollTo(0, 0);
+    $('search-team').focus({ preventScroll: true });
   };
 
   $('btn-back-config').onclick = showConfigScreen;

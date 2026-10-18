@@ -37,7 +37,7 @@ export function openReport(id: string): void {
       <div class="text-center shrink-0"><div class="text-3xl font-black tabular-nums">${r.gH} - ${r.gA}</div>${ex ? `<div class="text-[11px] text-amber-300 font-bold">${ex}</div>` : ''}</div>
       <div class="flex flex-col items-center flex-1 min-w-0">${logoImg(A, 'tm-logo')}<span class="text-sm font-bold text-center truncate w-full ${w === m.away ? 'text-emerald-400' : ''}">${escapeHtml(A.name)}</span><span class="text-[10px] text-slate-500">OVR ${A.ovr}</span></div>
     </div>
-    <p class="text-center text-[11px] text-slate-400 mt-1">${r.live ? `🎮 Jogada ao vivo · minigames no nível ${DIFF[r.live.d]?.label ?? 'Normal'}${r.live.sk ? ' · usou Pular para o Fim' : ''}` : 'Simulada pelo motor'}</p>`;
+    <p class="text-center text-[11px] text-slate-400 mt-1">${r.live ? `🎮 Jogada ao vivo · minigames no nível ${DIFF[r.live.d]?.label ?? 'Normal'}${r.live.sk ? ' · usou Pular para o Fim' : ''}${r.live.sp ? ' · pênaltis simulados' : ''}` : 'Simulada pelo motor'}</p>`;
 
   // Linha do tempo
   let timeline = '';

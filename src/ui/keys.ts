@@ -2,6 +2,7 @@
 import { $, hideEl, isShown } from './dom';
 import { liveKey } from './live';
 import { minigameActive, minigameKey } from './minigames';
+import { topLayer } from './overlays';
 import { toggleSound } from './settings';
 import { skipTicker, tickerOpen } from './ticker';
 
@@ -22,8 +23,10 @@ function onKey(e: KeyboardEvent): void {
     if (e.key === 'Escape') { e.preventDefault(); $('confirm-no').click(); }
     return;
   }
-  // minigame aberto (inclusive durante o aviso do resultado): só as teclas do lance valem
-  if (minigameActive() || isShown('minigame-overlay')) {
+  // minigame aberto (inclusive durante o aviso do resultado): só as teclas do lance valem,
+  // a não ser que uma janela esteja por cima dele (aí o Esc fecha a janela)
+  const top = topLayer();
+  if ((minigameActive() || isShown('minigame-overlay')) && (top === 'minigame-overlay' || !top)) {
     if (minigameKey(e)) e.preventDefault();
     return;
   }

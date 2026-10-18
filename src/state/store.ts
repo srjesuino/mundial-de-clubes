@@ -97,7 +97,8 @@ export function sanitize(s: Tournament): Tournament {
   if (o.mc !== undefined && !validForecast(o.mc)) delete o.mc;
   if (o.mcLog !== undefined) {
     if (!Array.isArray(o.mcLog)) delete o.mcLog;
-    else o.mcLog = o.mcLog.filter(validLogEntry);
+    // entradas de versões antigas (chave que não é o número de jogos disputados) quebrariam a seta ▲▼
+    else o.mcLog = o.mcLog.filter(e => validLogEntry(e) && /^\d+$/.test((e as { k: string }).k));
   }
   if (o.diffUsed !== undefined && !(Array.isArray(o.diffUsed) && o.diffUsed.every(d => ['facil', 'normal', 'dificil', 'lenda'].includes(d as string)))) delete o.diffUsed;
   if (o.skill !== undefined && !validSkill(o.skill)) delete o.skill;

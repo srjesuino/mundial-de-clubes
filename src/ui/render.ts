@@ -25,9 +25,9 @@ export function miniMatchRow(m: PlayableMatch): string {
   const ex = extraText(m);
   const tag = m.played ? 'button' : 'div';
   return `<${tag} ${m.played ? `data-report="${m.id}" aria-label="Relatório: ${escapeHtml(H.name)} x ${escapeHtml(A.name)}"` : ''} class="w-full flex items-center justify-between gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 text-sm text-left ${user ? 'bg-emerald-900/25 border border-emerald-500/40' : 'bg-slate-900/50 border border-slate-700/50'} ${m.played ? 'hover:border-slate-500 transition' : ''}">
-      <div class="flex items-center gap-2 justify-end flex-1 min-w-0"><span class="truncate ${w === m.home ? 'text-emerald-400 font-bold' : 'text-slate-200'}">${escapeHtml(H.name)}</span>${logoImg(H, 'w-5 h-5 object-contain shrink-0')}</div>
+      <div class="flex items-center gap-2 justify-end flex-1 min-w-0"><span class="club-name text-right ${w === m.home ? 'text-emerald-400 font-bold' : 'text-slate-200'}">${escapeHtml(H.name)}</span>${logoImg(H, 'w-5 h-5 object-contain shrink-0')}</div>
       <div class="text-center shrink-0 px-0.5 min-w-[2.75rem]"><div class="font-black text-white tabular-nums">${scoreText(m)}</div>${ex ? `<div class="text-[10px] text-amber-300 whitespace-nowrap">${ex}</div>` : ''}</div>
-      <div class="flex items-center gap-2 flex-1 min-w-0">${logoImg(A, 'w-5 h-5 object-contain shrink-0')}<span class="truncate ${w === m.away ? 'text-emerald-400 font-bold' : 'text-slate-200'}">${escapeHtml(A.name)}</span></div>
+      <div class="flex items-center gap-2 flex-1 min-w-0">${logoImg(A, 'w-5 h-5 object-contain shrink-0')}<span class="club-name ${w === m.away ? 'text-emerald-400 font-bold' : 'text-slate-200'}">${escapeHtml(A.name)}</span></div>
     </${tag}>`;
 }
 
@@ -46,7 +46,7 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
       ${showStage || badge ? `<div class="flex items-center justify-center gap-2 mb-2">${showStage ? `<span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold text-center">${escapeHtml(m.stage)}</span>` : ''}${badge}</div>` : ''}
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2 md:gap-3 flex-1 justify-end text-right min-w-0">
-          <span class="${hw} text-xs md:text-sm truncate">${escapeHtml(H.name)}</span>
+          <span class="${hw} text-xs md:text-sm club-name text-right">${escapeHtml(H.name)}</span>
           ${logoImg(H, 'w-6 h-6 md:w-8 md:h-8 object-contain shrink-0')}
         </div>
         <div class="shrink-0 px-1 md:px-2 text-center flex flex-col items-center">
@@ -59,7 +59,7 @@ export function resultCard(m: PlayableMatch, showStage: boolean, badge = ''): st
         </div>
         <div class="flex items-center gap-2 md:gap-3 flex-1 justify-start text-left min-w-0">
           ${logoImg(A, 'w-6 h-6 md:w-8 md:h-8 object-contain shrink-0')}
-          <span class="${aw} text-xs md:text-sm truncate">${escapeHtml(A.name)}</span>
+          <span class="${aw} text-xs md:text-sm club-name">${escapeHtml(A.name)}</span>
         </div>
       </div>
     </button>`;

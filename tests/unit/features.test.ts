@@ -335,3 +335,42 @@ describe('correções da galeria, conquistas e saves (revisão)', () => {
     expect(Object.keys(h.titles)).toEqual(['b']);
   });
 });
+
+describe('correções da segunda revisão', () => {
+  it('pontos corridos com até 4 clubes: Top 4 garantido desde o início', () => {
+    setSeed(1);
+    const t = createTournament(cfg({ groupsCount: 1, teamsPerGroup: 4, advancingPerGroup: 1, groupLegs: 2 }), someUsers(1));
+    simulateRound(t);
+    advance(t);
+    const f = runForecast(t, 100);
+    Object.keys(t.teams).forEach(id => expect(formatChance(f, id, 1).text).toBe('✓'));
+  });
+
+  it('no fim do torneio, tudo está decidido', async () => {
+    const { decidedNow } = await import('../../src/engine/forecast');
+    setSeed(7);
+    const t = playAll(createTournament(cfg({}), someUsers(1)));
+    const k = decidedNow(t);
+    Object.keys(t.teams).forEach(id => expect(k[id]).toMatch(/^[01]+$/));
+    expect(k[t.champion!]).toMatch(/1$/);
+  });
+
+  it('histórico de versão antiga (chave que não é número de jogos) é descartado', async () => {
+    const { sanitize } = await import('../../src/state/store');
+    setSeed(2);
+    const t = JSON.parse(JSON.stringify(createTournament(cfg({}), someUsers(1))));
+    t.mcLog = [{ k: 'GROUP|0|0|0|0|-', label: 'a', n: 1, t: {} }, { k: '16', label: 'b', n: 1, t: {} }];
+    expect(sanitize(t).mcLog!.map(e => e.k)).toEqual(['16']);
+  });
+
+  it('galeria com escala antiga de colocação é convertida', async () => {
+    const { normalizeHof } = await import('../../src/engine/meta');
+    setSeed(4);
+    const t = playAll(createTournament(cfg({ initialPhase: 'knockout', totalTeamsKnockout: 64 }), someUsers(1)));
+    const e = hofEntry(t, 1) as unknown as Record<string, unknown>;
+    delete e.rv;
+    (e.users as { rank: number; label: string }[])[0] = { ...(e.users as never[])[0] as object, rank: 140, label: 'Semifinal' } as never;
+    const h = normalizeHof({ v: 1, list: [e], titles: {} })!;
+    expect(h.list[0].users[0].rank).toBe(998);
+  });
+});

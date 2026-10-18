@@ -6,7 +6,15 @@ export const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
   return el as T;
 };
 const elOf = (el: string | HTMLElement): HTMLElement => (typeof el === 'string' ? $(el) : el);
-export const setHidden = (el: string | HTMLElement, hidden: boolean): void => { elOf(el).classList.toggle('hidden', hidden); };
+/** Avisado (na hora) a cada troca de visibilidade: o gerenciador de camadas ajusta foco e inércia antes do próximo passo */
+let onVisibility: ((el: HTMLElement) => void) | null = null;
+export const setVisibilityHook = (fn: (el: HTMLElement) => void): void => { onVisibility = fn; };
+export const setHidden = (el: string | HTMLElement, hidden: boolean): void => {
+  const e = elOf(el);
+  if (e.classList.contains('hidden') === hidden) return;
+  e.classList.toggle('hidden', hidden);
+  onVisibility?.(e);
+};
 export const showEl = (el: string | HTMLElement): void => setHidden(el, false);
 export const hideEl = (el: string | HTMLElement): void => setHidden(el, true);
 export const isShown = (el: string | HTMLElement): boolean => !elOf(el).classList.contains('hidden');
@@ -57,34 +65,36 @@ export function askConfirm(title: string, text: string, onYes: () => void, yesLa
 }
 
 // ---------- Narração para leitor de tela ----------
-// No máximo uma fala a cada 1,2 s; se chegar outra no meio, fica só a mais nova (urgente fala na hora).
+// Mensagens do mesmo instante são juntadas numa fala só (nada se perde: placar final + consequência, gols de um "pular").
+// Entre falas, 1,2 s; das mensagens comuns que chegam nesse intervalo, só a mais nova é dita. As urgentes nunca se perdem.
 let srBusyUntil = 0;
-let srQueued: string | null = null;
 let srTimer: number | undefined;
+let srQueue: { text: string; urgent: boolean }[] = [];
 let srEnabled = (): boolean => true;
 export const setSrEnabled = (fn: () => boolean): void => { srEnabled = fn; };
 
-function srFlush(text: string): void {
+function srFlush(): void {
+  srTimer = undefined;
   const el = document.getElementById('sr-live');
-  if (!el) return;
+  if (!el || !srQueue.length) return;
+  const lastNormal = [...srQueue].reverse().find(m => !m.urgent);
+  const parts = srQueue.filter(m => m.urgent || m === lastNormal).map(m => m.text);
+  srQueue = [];
   el.textContent = '';
   // trocar o texto depois de limpar faz o leitor repetir frases iguais
-  window.setTimeout(() => { el.textContent = text; }, 30);
+  window.setTimeout(() => { el.textContent = parts.join(' · '); }, 30);
   srBusyUntil = performance.now() + 1200;
 }
 
 export function srSay(text: string, urgent = false): void {
   if (!srEnabled()) return;
-  const now = performance.now();
-  if (urgent || now >= srBusyUntil) {
-    srQueued = null;
-    clearTimeout(srTimer);
-    srFlush(text);
-    return;
+  srQueue.push({ text, urgent });
+  if (srTimer !== undefined) {
+    if (!urgent) return;
+    clearTimeout(srTimer); // urgente: sai já, junto com o que chegou no mesmo instante
   }
-  srQueued = text;
-  clearTimeout(srTimer);
-  srTimer = window.setTimeout(() => { if (srQueued) { const q = srQueued; srQueued = null; srFlush(q); } }, srBusyUntil - now);
+  const wait = urgent ? 40 : Math.max(40, srBusyUntil - performance.now());
+  srTimer = window.setTimeout(srFlush, wait);
 }
 
 /** Número no formato brasileiro (1.240 · 12,4) */

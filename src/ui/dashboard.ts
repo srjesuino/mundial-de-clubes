@@ -19,6 +19,8 @@ export function enterDashboard(): void {
   showEl('screen-dashboard');
   setupDashboardTabs();
   updateDashboard();
+  // a tela mudou: o foco vai para o clube (o leitor de tela anuncia onde o jogador está)
+  $('dash-phase').focus({ preventScroll: true });
 }
 
 function setupDashboardTabs(): void {
@@ -228,7 +230,7 @@ function renderSwissView(): void {
           const isU = isUser(t, x.id);
           const border = x.status === 'advanced' ? 'border-l-2 border-l-emerald-500' : x.status === 'eliminated' ? 'border-l-2 border-l-red-500' : 'border-l-2 border-l-transparent';
           return `<tr class="border-b border-slate-700/30 hover:bg-white/5">
-            <td class="py-2 pl-2 pr-3 sticky-col ${isU ? 'bg-indigo-950' : 'bg-slate-800'} ${border}"><div class="flex items-center gap-2 whitespace-nowrap">${logoImg(x, 'w-5 h-5 object-contain')}<span class="${isU ? 'text-indigo-300 font-bold' : 'text-slate-200'}">${escapeHtml(x.name)}</span></div></td>
+            <td class="py-2 pl-2 pr-3 sticky-col ${isU ? 'bg-indigo-950' : 'bg-slate-800'} ${border}"><div class="flex items-center gap-2">${logoImg(x, 'w-5 h-5 object-contain shrink-0')}<span class="club-name max-w-[9rem] sm:max-w-none ${isU ? 'text-indigo-300 font-bold' : 'text-slate-200'}">${escapeHtml(x.name)}</span></div></td>
             <td class="py-2 text-center text-white font-bold">${x.sw}-${x.sl}</td>
             <td class="py-2 text-center text-slate-400">${x.gf}</td>
             <td class="py-2 text-center text-slate-400">${x.gd > 0 ? '+' + x.gd : x.gd}</td>

@@ -11,14 +11,17 @@ type Commit = (goal: boolean, why?: string) => void;
 type Sfx = 'goal' | 'save' | 'post' | 'miss';
 
 const MG: {
-  timers: number[];
+  timers: { id: number; fn: () => void; due: number }[];
+  /** aba em segundo plano: quando pausou (0 = rodando) e quando a barra de tempo zera */
+  pausedAt: number;
+  barEnd: number;
   active: boolean;
   onClose: (() => void) | null;
   cells: HTMLButtonElement[];
   targets: HTMLButtonElement[];
   ball: HTMLButtonElement | null;
   mode: 'att' | 'def' | 'penS' | 'penD' | null;
-} = { timers: [], active: false, onClose: null, cells: [], targets: [], ball: null, mode: null };
+} = { timers: [], pausedAt: 0, barEnd: 0, active: false, onClose: null, cells: [], targets: [], ball: null, mode: null };
 
 const BOX_WIDE = 'relative w-full max-w-2xl aspect-[4/3] sm:aspect-[2/1] border-4 border-b-0 border-white/80 rounded-t shadow-[inset_0_0_50px_rgba(255,255,255,0.2)] bg-emerald-900/20 overflow-hidden';
 const BOX_PEN = 'relative w-full max-w-md aspect-[3/2] border-4 border-b-0 border-white/80 rounded-t shadow-[inset_0_0_50px_rgba(255,255,255,0.2)] bg-emerald-900/20 overflow-hidden';
@@ -30,7 +33,47 @@ export const minigameActive = (): boolean => MG.active;
 /** Continuação a executar depois que o aviso do lance fecha */
 export const setMinigameOnClose = (fn: (() => void) | null): void => { MG.onClose = fn; };
 
-function mgTimer(fn: () => void, ms: number): void { MG.timers.push(window.setTimeout(fn, ms)); }
+function schedule(fn: () => void, due: number): void {
+  const entry = { id: 0, fn, due };
+  entry.id = window.setTimeout(() => { MG.timers = MG.timers.filter(x => x !== entry); fn(); }, Math.max(0, due - performance.now()));
+  MG.timers.push(entry);
+}
+function mgTimer(fn: () => void, ms: number): void { schedule(fn, performance.now() + ms); }
+function clearTimers(): void {
+  MG.timers.forEach(x => clearTimeout(x.id));
+  MG.timers = [];
+  MG.pausedAt = 0;
+}
+
+/**
+ * Aba em segundo plano: o lance aberto congela (tempo e barra) e continua de onde parou na volta.
+ * Assim o jogador não perde uma chance ou cobrança por trocar de aba.
+ */
+function pauseMinigame(): void {
+  if (MG.pausedAt || !MG.timers.length) return;
+  MG.pausedAt = performance.now();
+  MG.timers.forEach(x => clearTimeout(x.id));
+  if (MG.active && MG.barEnd > MG.pausedAt) mgStopBar(false);
+}
+function resumeMinigame(): void {
+  if (!MG.pausedAt) return;
+  const shift = performance.now() - MG.pausedAt;
+  MG.pausedAt = 0;
+  const pending = MG.timers;
+  MG.timers = [];
+  pending.forEach(x => schedule(x.fn, x.due + shift));
+  if (MG.active && MG.barEnd) {
+    MG.barEnd += shift;
+    const left = MG.barEnd - performance.now();
+    if (left > 0) {
+      const bar = $('mg-timer-bar');
+      void bar.offsetWidth;
+      bar.style.transition = `width ${Math.round(left)}ms linear`;
+      bar.style.width = '0%';
+    }
+  }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseMinigame(); else resumeMinigame(); });
 
 /** Tique-taque nos últimos instantes do tempo de reação */
 function mgTicks(ms: number): void {
@@ -49,8 +92,7 @@ function resetInputs(): void {
 }
 
 function mgOpen(title: string, subtitle: string, boxClass: string, inShootout: boolean, mode: NonNullable<typeof MG.mode>): void {
-  MG.timers.forEach(clearTimeout);
-  MG.timers = [];
+  clearTimers();
   MG.active = true;
   MG.onClose = null;
   MG.mode = mode;
@@ -74,6 +116,7 @@ function mgOpen(title: string, subtitle: string, boxClass: string, inShootout: b
 }
 
 function mgStartBar(ms: number): void {
+  MG.barEnd = performance.now() + ms;
   const bar = $('mg-timer-bar');
   bar.style.transition = 'none';
   bar.style.width = '100%';
@@ -83,6 +126,7 @@ function mgStartBar(ms: number): void {
 }
 
 function mgStopBar(empty: boolean): void {
+  if (!MG.pausedAt) MG.barEnd = 0;
   const bar = $('mg-timer-bar');
   const w = empty ? '0%' : getComputedStyle(bar).width;
   bar.style.transition = 'none';
@@ -100,22 +144,20 @@ const SFX_PLAY: Record<Sfx, () => void> = { goal: sfx.net, save: sfx.save, post:
 function mgFinish(text: string, color: string, commit: () => void, delay = 850, timedOut = false, sound?: Sfx): void {
   if (!MG.active) return;
   MG.active = false;
-  MG.timers.forEach(clearTimeout);
-  MG.timers = [];
+  clearTimers();
   mgStopBar(timedOut);
   const fb = $('mg-feedback');
   fb.textContent = text;
   fb.className = `min-h-[2.5rem] sm:min-h-[3rem] mt-2 text-center text-2xl sm:text-4xl font-black ${color}`;
   if (sound) SFX_PLAY[sound]();
   commit(); // o resultado vale a partir de agora; o aviso só fecha depois
-  MG.timers.push(window.setTimeout(mgFlush, delay));
+  mgTimer(mgFlush, delay);
 }
 
 function mgFlush(): void {
   const next = MG.onClose;
   MG.onClose = null;
-  MG.timers.forEach(clearTimeout);
-  MG.timers = [];
+  clearTimers();
   MG.mode = null;
   resetInputs();
   mgClose();
@@ -127,8 +169,7 @@ export function mgAbort(): void {
   MG.active = false;
   MG.onClose = null;
   MG.mode = null;
-  MG.timers.forEach(clearTimeout);
-  MG.timers = [];
+  clearTimers();
   resetInputs();
   mgClose();
 }
@@ -179,6 +220,7 @@ export function attackMinigame(att: TeamState, def: TeamState, cb: Commit): void
   });
   // Teclas 1..n seguem a ordem visual da esquerda para a direita (não revelam nada que não esteja na tela)
   MG.targets = placed.sort((a, b) => a.left - b.left || a.top - b.top).map(p => p.btn);
+  MG.targets.forEach((b, i) => b.setAttribute('aria-label', `${b.getAttribute('aria-label')}, tecla ${i + 1}`));
   if (lastInput === 'key') {
     MG.targets.forEach((b, i) => {
       const badge = document.createElement('span');

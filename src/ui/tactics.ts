@@ -35,9 +35,11 @@ function renderChips(m: PlayableMatch): void {
   box.querySelectorAll<HTMLButtonElement>('button').forEach(b => {
     b.onclick = () => {
       if (!setTactic(T(), m, side, b.dataset.tac as Tactic)) return;
+      const hadFocus = document.activeElement === b;
       saveGame();
       renderOdds(m);
       renderChips(m);
+      if (hadFocus) document.querySelector<HTMLElement>(`#tac-chips [data-tac="${b.dataset.tac}"]`)?.focus({ preventScroll: true });
       document.dispatchEvent(new CustomEvent('mc64:tactic'));
     };
   });

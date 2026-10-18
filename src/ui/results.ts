@@ -41,6 +41,8 @@ export function showRoundResults(matches: PlayableMatch[], title: string, onAdva
   const t = T();
   const sorted = onAdvance ? [...matches].sort((a, b) => Number(isUserMatch(t, b)) - Number(isUserMatch(t, a))) : matches;
   renderMatchList(sorted, onAdvance ? takeAchStrip() : '');
+  // o botão principal da janela recebe o foco (Enter avança; a proteção contra toque duplo continua valendo)
+  (onAdvance ? btnAdv : btnClose).focus({ preventScroll: true });
   if (onAdvance) emit('roundResults');
 }
 

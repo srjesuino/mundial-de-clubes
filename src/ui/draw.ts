@@ -38,11 +38,17 @@ function renderDrawHistory(pairs: [string, string][]): void {
 function updateDrawButtons(): void {
   const D = T().draw;
   const done = !D || D.revealed >= D.pairs.length;
+  const wasFocused = document.activeElement;
+  const hadFocus = wasFocused === $('btn-draw-next') || wasFocused === $('btn-draw-all') || wasFocused === $('screen-draw');
   setHidden('btn-draw-next', done);
   setHidden('btn-draw-all', done);
   setHidden('btn-finish-draw', !done);
-  $<HTMLButtonElement>('btn-draw-next').disabled = drawAnimating;
-  $<HTMLButtonElement>('btn-draw-all').disabled = drawAnimating;
+  // aria-disabled (e não disabled): o botão não perde o foco durante a animação, então Enter repetido segue sorteando
+  ['btn-draw-next', 'btn-draw-all'].forEach(id => {
+    $(id).setAttribute('aria-disabled', String(drawAnimating));
+    $(id).classList.toggle('opacity-50', drawAnimating);
+  });
+  if (done && hadFocus) $('btn-finish-draw').focus({ preventScroll: true });
   $('draw-progress').textContent = D ? `Confronto ${Math.min(D.revealed, D.pairs.length)} de ${D.pairs.length}` : 'Sorteio concluído';
 }
 

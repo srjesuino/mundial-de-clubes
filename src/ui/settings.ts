@@ -44,7 +44,15 @@ const segmented = (name: string, label: string, opts: [string, string][], cur: s
       `<button type="button" data-seg="${name}" data-v="${v}" aria-pressed="${v === cur}" class="min-h-[44px] rounded-lg text-xs font-bold border ${v === cur ? 'bg-emerald-600 border-emerald-300 text-white' : 'bg-slate-800 border-slate-600 text-slate-300'}">${l}</button>`).join('')}</div>
   </div>`;
 
+/** Recria as linhas sem perder o lugar de quem navega pelo teclado */
 function renderSettings(): void {
+  const a = document.activeElement as HTMLElement | null;
+  const keep = a?.closest('#settings-rows') ? (a.dataset.toggle ? `[data-toggle="${a.dataset.toggle}"]` : a.dataset.seg ? `[data-seg="${a.dataset.seg}"][data-v="${a.dataset.v}"]` : a.id ? '#' + a.id : null) : null;
+  drawSettings();
+  if (keep) $('settings-rows').querySelector<HTMLElement>(keep)?.focus({ preventScroll: true });
+}
+
+function drawSettings(): void {
   const t = store.t;
   const locked = liveRunning();
   const diff = t ? `

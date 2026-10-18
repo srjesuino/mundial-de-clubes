@@ -51,7 +51,7 @@
                     class="px-4 py-2 min-h-[44px] rounded-lg bg-amber-900/30 hover:bg-amber-800/40 border border-amber-500/30 text-amber-200 font-bold transition">🏛️ Galeria de Campeões</button>
             </div>
 
-            <h2 class="text-3xl font-black mb-2 text-center text-indigo-400 uppercase">Sandbox Mode</h2>
+            <h2 id="sandbox-title" tabindex="-1" class="text-3xl font-black mb-2 text-center text-indigo-400 uppercase focus:outline-none">Sandbox Mode</h2>
             <p class="text-center text-slate-400 mb-8 text-sm">Crie as regras do seu próprio torneio</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +189,7 @@
             <div
                 class="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-800/80 rounded-2xl p-5 mb-6 border border-slate-700 shadow-xl">
                 <div class="flex items-center gap-5 min-w-0 w-full md:w-auto">
-                    <img id="dash-logo" src="" alt="" class="tm-logo-lg bg-white/5 rounded-full p-2 border border-slate-600 shrink-0">
+                    <img id="dash-logo" src="" alt="" class="tm-logo-lg bg-white/10 rounded-full p-2 border border-slate-600 shrink-0">
                     <div class="flex flex-col min-w-0">
                         <div class="relative">
                             <select id="dash-team-select" aria-label="Clube controlado"
@@ -197,7 +197,7 @@
                             </select>
                             <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
                         </div>
-                        <p id="dash-phase" class="text-emerald-400 font-bold uppercase tracking-widest text-xs md:text-sm mt-1">Fase de Grupos</p>
+                        <p id="dash-phase" tabindex="-1" class="focus:outline-none text-emerald-400 font-bold uppercase tracking-widest text-xs md:text-sm mt-1">Fase de Grupos</p>
                         <p id="dash-team-status" class="text-slate-400 text-xs mt-1"></p>
                         <p id="dash-super" class="hidden text-xs text-amber-300 font-bold mt-1 cursor-help" title="pelos OVRs do simulador: a chance de ir tão bem em cada um destes jogos, um a um"></p>
                     </div>
@@ -231,13 +231,13 @@
                         <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-700/80 text-center">
                             <div class="flex justify-between items-center mb-4">
                                 <div class="flex flex-col items-center w-2/5">
-                                    <img id="next-home-logo" src="" alt="" class="tm-logo mb-2">
+                                    <img id="next-home-logo" src="" alt="" class="tm-logo mb-2 bg-white/10 rounded-full p-1">
                                     <span class="font-bold text-sm truncate w-full text-center" id="next-match-home">Casa</span>
                                     <span class="text-[10px] text-slate-500 font-bold" id="next-home-ovr"></span>
                                 </div>
                                 <span class="text-slate-500 font-black text-xl" id="next-match-vs">VS</span>
                                 <div class="flex flex-col items-center w-2/5">
-                                    <img id="next-away-logo" src="" alt="" class="tm-logo mb-2">
+                                    <img id="next-away-logo" src="" alt="" class="tm-logo mb-2 bg-white/10 rounded-full p-1">
                                     <span class="font-bold text-sm truncate w-full text-center" id="next-match-away">Fora</span>
                                     <span class="text-[10px] text-slate-500 font-bold" id="next-away-ovr"></span>
                                 </div>
@@ -465,11 +465,11 @@
                             class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-4 px-8 rounded-full shadow-lg transition-all text-xl flex items-center gap-2 justify-center disabled:opacity-50">
                             <span class="text-xl">⚡</span> Sortear Tudo
                         </button>
-                        <button id="btn-draw-next"
+                        <button id="btn-draw-next" data-autofocus
                             class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-10 rounded-full shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all transform hover:scale-105 active:scale-95 text-xl flex items-center gap-3 justify-center disabled:opacity-50">
                             <span class="text-2xl">⚽</span> Sortear Confronto
                         </button>
-                        <button id="btn-finish-draw"
+                        <button id="btn-finish-draw" data-autofocus
                             class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-all text-xl justify-center">
                             Ver Chaveamento Completo
                         </button>
@@ -698,7 +698,7 @@
         </div>
 
         <!-- MODAL: RELATÓRIO DA PARTIDA -->
-        <div id="modal-report" class="hidden fixed inset-0 bg-black/95 z-[88] p-4 md:p-8 overflow-y-auto">
+        <div id="modal-report" aria-label="Relatório da partida" class="hidden fixed inset-0 bg-black/95 z-[88] p-4 md:p-8 overflow-y-auto">
             <div class="w-full max-w-lg mx-auto glass rounded-3xl p-5 md:p-6 relative border border-slate-600 shadow-2xl mt-4 mb-4">
                 <button data-close="modal-report" aria-label="Fechar"
                     class="modal-close bg-slate-700 p-2 rounded-full hover:bg-slate-600 text-white w-11 h-11 flex items-center justify-center font-bold">X</button>
