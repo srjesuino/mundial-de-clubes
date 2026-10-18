@@ -113,7 +113,7 @@ function champsTab(list: HofEntry[]): string {
 
 const prunedNote = (): string => {
   const d = hof().dropped;
-  return d ? `<p class="text-[11px] text-slate-500 text-center mb-2">Mostrando os últimos 200 torneios (${fmtBR(d)} mais antigos saíram da lista; os títulos em "Mais títulos" contam todos).</p>` : '';
+  return d ? `<p class="text-[11px] text-slate-500 text-center mb-2">Mostrando os últimos 200 torneios (${fmtBR(d)} ${d === 1 ? 'mais antigo saiu' : 'mais antigos saíram'} da lista; os títulos em "Mais títulos" contam todos).</p>` : '';
 };
 
 function clubsTab(list: HofEntry[]): string {

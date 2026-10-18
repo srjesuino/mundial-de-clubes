@@ -14,7 +14,8 @@ export default defineConfig({
     VitePWA({
       // 'prompt': a versão nova só entra quando é seguro (nunca no meio de uma partida, sorteio ou plantão)
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      // o registro é feito à mão em src/ui/update.ts (workbox-window), para controlar quando recarregar
+      injectRegister: false,
       manifest: {
         name: 'Mundial de Clubes 64',
         short_name: 'Mundial 64',
@@ -33,7 +34,10 @@ export default defineConfig({
         ]
       },
       workbox: {
-        ...(absolute ? { navigateFallbackAllowlist: [new RegExp('^' + escapeRe(base) + '(index\\.html)?$')] } : {}),
+        // a 1ª visita já fica sob o service worker (escudos entram no cache); atualizações continuam esperando o ⟳
+        clientsClaim: true,
+        // o Workbox compara caminho + query: a raiz do app abre offline com qualquer query
+        ...(absolute ? { navigateFallbackAllowlist: [new RegExp('^' + escapeRe(base) + '(index\\.html)?(\\?.*)?$')] } : {}),
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // escudos dos clubes vêm de um servidor externo: cache para jogar offline depois da 1ª visita
         runtimeCaching: [{

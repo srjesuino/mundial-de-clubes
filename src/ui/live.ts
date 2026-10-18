@@ -704,6 +704,25 @@ function simulateRemainingPens(): void {
   finishLive();
 }
 
+// ---------- Outras abas ----------
+// Uma aba que vai continuar o torneio pergunta se a partida salva está sendo jogada agora em outra aba.
+const tabs: BroadcastChannel | null = (() => { try { return new BroadcastChannel('mundial64-live'); } catch { return null; } })();
+tabs?.addEventListener('message', e => {
+  if (e.data?.type === 'who-plays' && L && !L.finished && L.m.id === e.data.id) tabs.postMessage({ type: 'playing', id: L.m.id });
+});
+
+/** true se outra aba responde que está jogando essa partida (espera até 300 ms) */
+export function liveElsewhere(matchId: string): Promise<boolean> {
+  if (!tabs) return Promise.resolve(false);
+  return new Promise(resolve => {
+    const onMsg = (e: MessageEvent) => { if (e.data?.type === 'playing' && e.data.id === matchId) done(true); };
+    const done = (v: boolean) => { tabs.removeEventListener('message', onMsg); clearTimeout(timer); resolve(v); };
+    tabs.addEventListener('message', onMsg);
+    const timer = window.setTimeout(() => done(false), 300);
+    tabs.postMessage({ type: 'who-plays', id: matchId });
+  });
+}
+
 /** Com a aba em segundo plano, a próxima cobrança só abre quando o jogador voltar */
 function whenVisible(fn: () => void): void {
   if (!document.hidden) { fn(); return; }

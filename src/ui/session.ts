@@ -8,7 +8,7 @@ import { clearDrawTimers } from './draw';
 import { resetFlow } from './flow';
 import { emit } from './hooks';
 import { recordTournamentEnd } from './hall';
-import { discardLive, holdLive } from './live';
+import { discardLive, holdLive, liveElsewhere } from './live';
 import { refreshConfigUI, resetSelection, startTournament } from './setup';
 import { stopBed } from './sound';
 
@@ -109,7 +109,14 @@ function initSaveProblems(): void {
 export function initSession(): void {
   initSaveProblems();
   $('btn-new-tournament').onclick = confirmNewTournament;
-  $('btn-continue-save').onclick = () => {
+  $('btn-continue-save').onclick = async () => {
+    const peek = loadGame();
+    if (!peek) { hideEl('saved-game-banner'); toast('Não foi possível carregar o torneio salvo.'); return; }
+    // a partida salva está sendo jogada agora em outra aba: não a encerra pelo simulador
+    if (peek.live && await liveElsewhere(peek.live.id)) {
+      toast('Essa partida está sendo jogada agora em outra aba. Termine lá (ou feche aquela aba) e tente de novo.', 6000);
+      return;
+    }
     const saved = loadGame();
     if (!saved) { hideEl('saved-game-banner'); toast('Não foi possível carregar o torneio salvo.'); return; }
     try {

@@ -43,10 +43,13 @@ Estrutura:
 - `src/ui/`: telas e componentes, em TypeScript sem framework.
 - `tests/unit/`: invariantes de todos os formatos e conferência das probabilidades.
 - `tests/e2e/`: torneios completos pela interface, partida ao vivo só pelo teclado, celular e armazenamento bloqueado.
+- `tests/pwa/`: o build do GitHub Pages com service worker de verdade (sub-caminho, uso offline).
 
 ## Publicação
 
-O workflow `.github/workflows/deploy.yml` roda tipos, testes, build e testes de ponta a ponta a cada push na `main` e publica no GitHub Pages. Para ativar, vá em **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+O workflow `.github/workflows/deploy.yml` roda tipos, testes, build e testes de ponta a ponta a cada push na `main` e publica no GitHub Pages (o build final usa `BASE=/<repositório>/`). Para ativar, vá em **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Versões novas nunca recarregam a página no meio de uma partida: aparece o botão ⟳ no topo, e a troca só acontece sozinha quando não há nada em andamento.
 
 Os escudos dos clubes são carregados de um servidor público. Quando uma imagem não carrega, o jogo desenha um escudo com as iniciais.
 
